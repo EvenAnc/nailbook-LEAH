@@ -50,6 +50,12 @@ const Store = (() => {
         if(document.getElementById('set-val-owner')) document.getElementById('set-val-owner').textContent = customBiz.ownerName || CONFIG.business.ownerName;
         if(document.getElementById('set-val-siren')) document.getElementById('set-val-siren').textContent = customBiz.siren || CONFIG.business.siren;
         if(document.getElementById('set-val-address')) document.getElementById('set-val-address').textContent = customBiz.address || CONFIG.business.address;
+        
+        const dur = customBiz.defaultDuration || 90;
+        if(document.getElementById('set-val-duration')) document.getElementById('set-val-duration').textContent = dur >= 60 ? Math.floor(dur/60) + 'h' + (dur%60||'00') : dur + ' min';
+        
+        const dep = customBiz.defaultDeposit !== undefined ? customBiz.defaultDeposit : 15;
+        if(document.getElementById('set-val-deposit')) document.getElementById('set-val-deposit').textContent = dep + ' €';
       }
     } catch(e){}
   }
@@ -800,7 +806,7 @@ const AppointmentModal = (() => {
       const dateStr = prefillDate || `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       document.getElementById('appt-date').value = dateStr;
       document.getElementById('appt-time').value = '09:00';
-      document.getElementById('appt-duration').value = '90';
+      document.getElementById('appt-duration').value = CONFIG.business.defaultDuration ? CONFIG.business.defaultDuration.toString() : '90';
     }
 
     modal.classList.remove('hidden');
@@ -1047,7 +1053,9 @@ const StatsPage = (() => {
     document.getElementById('stat-ca').textContent   = UI.formatCurrency(ca);
     document.getElementById('stat-rdv').textContent  = done.length;
     document.getElementById('stat-tips').textContent = UI.formatCurrency(tips);
-    document.getElementById('stat-wero').textContent = `${weroPct}% / ${100 - weroPct}%`;
+    const especePct = 100 - weroPct;
+    document.getElementById('stat-wero').textContent = `${especePct}% / ${weroPct}%`;
+    document.getElementById('stats-bar-especes').style.width = `${especePct}%`;
     document.getElementById('stats-bar-wero').style.width = `${weroPct}%`;
 
     // Trend (vs prev month)
@@ -1447,36 +1455,51 @@ const SettingsPage = (() => {
     });
 
     // Edit settings
-    const editBizBtn = document.getElementById('edit-business-btn');
-    if (editBizBtn) {
-      editBizBtn.addEventListener('click', async () => {
-        const name = prompt("Nom de l'entreprise :", CONFIG.business.name);
-        if (name === null) return;
-        const owner = prompt("Nom de la gérante :", CONFIG.business.ownerName);
-        if (owner === null) return;
-        const siren = prompt("Numéro SIREN :", CONFIG.business.siren);
-        if (siren === null) return;
-        const address = prompt("Adresse complète :", CONFIG.business.address);
-        if (address === null) return;
+    const settingsModal = document.getElementById('settings-modal');
+    if (settingsModal) {
+      document.getElementById('edit-business-btn').addEventListener('click', () => {
+        document.getElementById('set-input-name').value = CONFIG.business.name || '';
+        document.getElementById('set-input-owner').value = CONFIG.business.ownerName || '';
+        document.getElementById('set-input-siren').value = CONFIG.business.siren || '';
+        document.getElementById('set-input-address').value = CONFIG.business.address || '';
+        document.getElementById('set-input-duration').value = CONFIG.business.defaultDuration || 90;
+        document.getElementById('set-input-deposit').value = CONFIG.business.defaultDeposit || 15;
+        settingsModal.classList.remove('hidden');
+      });
 
-        const confirmSave = await UI.confirm('⚙️', 'Enregistrer ?', 'Ces informations apparaîtront sur les futures factures.', 'Enregistrer', 'btn-primary');
-        if (!confirmSave) return;
+      const closeSettings = () => settingsModal.classList.add('hidden');
+      document.getElementById('settings-modal-close').addEventListener('click', closeSettings);
+      document.getElementById('settings-modal-cancel').addEventListener('click', closeSettings);
+
+      document.getElementById('settings-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('set-input-name').value;
+        const owner = document.getElementById('set-input-owner').value;
+        const siren = document.getElementById('set-input-siren').value;
+        const address = document.getElementById('set-input-address').value;
+        const duration = parseInt(document.getElementById('set-input-duration').value, 10);
+        const deposit = parseFloat(document.getElementById('set-input-deposit').value);
 
         CONFIG.business.name = name;
         CONFIG.business.ownerName = owner;
         CONFIG.business.siren = siren;
         CONFIG.business.address = address;
+        CONFIG.business.defaultDuration = duration;
+        CONFIG.business.defaultDeposit = deposit;
 
         localStorage.setItem('nailbook_biz_settings', JSON.stringify({
-          name, ownerName: owner, siren, address
+          name, ownerName: owner, siren, address, defaultDuration: duration, defaultDeposit: deposit
         }));
 
-        document.getElementById('set-val-name').textContent = name;
-        document.getElementById('set-val-owner').textContent = owner;
-        document.getElementById('set-val-siren').textContent = siren;
-        document.getElementById('set-val-address').textContent = address;
+        if(document.getElementById('set-val-name')) document.getElementById('set-val-name').textContent = name;
+        if(document.getElementById('set-val-owner')) document.getElementById('set-val-owner').textContent = owner;
+        if(document.getElementById('set-val-siren')) document.getElementById('set-val-siren').textContent = siren;
+        if(document.getElementById('set-val-address')) document.getElementById('set-val-address').textContent = address;
+        if(document.getElementById('set-val-duration')) document.getElementById('set-val-duration').textContent = duration >= 60 ? Math.floor(duration/60) + 'h' + (duration%60||'00') : duration + ' min';
+        if(document.getElementById('set-val-deposit')) document.getElementById('set-val-deposit').textContent = deposit + ' €';
         
-        UI.toast('Informations mises à jour', 'success');
+        closeSettings();
+        UI.toast('Paramètres enregistrés', 'success');
       });
     }
 
