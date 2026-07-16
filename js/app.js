@@ -1445,13 +1445,9 @@ const Invoice = (() => {
 
     try {
       const filename = `NailsByLV_Recettes_${year}-${String(month + 1).padStart(2, '0')}.pdf`;
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        pdfMake.createPdf(docDefinition).open();
-      } else {
-        pdfMake.createPdf(docDefinition).download(filename);
-      }
-      UI.toast('Facture générée 📄', 'success');
+      // Toujours utiliser open() car download() peut être bloqué par les navigateurs
+      pdfMake.createPdf(docDefinition).open();
+      UI.toast('Facture ouverte dans un nouvel onglet 📄', 'success');
     } catch (e) {
       console.error('PDF error:', e);
       UI.toast('Erreur lors de la génération du PDF', 'error');
