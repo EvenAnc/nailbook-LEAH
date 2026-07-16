@@ -1404,7 +1404,7 @@ const Invoice = (() => {
 
       styles: {
         businessName: {
-          fontFamily: 'Helvetica', fontSize: 18, bold: true,
+          fontSize: 18, bold: true,
           color: COLORS.dark, margin: [0, 0, 0, 4],
         },
         businessSub: {
@@ -1436,7 +1436,6 @@ const Invoice = (() => {
       },
 
       defaultStyle: {
-        font: 'Helvetica',
         fontSize: 10,
         color: COLORS.dark,
         lineHeight: 1.3,
