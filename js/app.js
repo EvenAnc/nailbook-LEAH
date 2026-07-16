@@ -455,6 +455,7 @@ const Calendar = (() => {
     document.getElementById('view-day-btn').classList.toggle('active', view === 'day');
     document.getElementById('month-view').classList.toggle('hidden', view === 'day');
     document.getElementById('day-view').classList.toggle('hidden', view === 'month');
+    document.getElementById('calendar-nav').classList.toggle('hidden', view === 'day');
     if (view === 'day') renderDayView();
   }
 
