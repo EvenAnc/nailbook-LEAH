@@ -1779,11 +1779,11 @@ function initYearlyStats() {
     // On open, reset to current year
     currentYearlyYear = new Date().getFullYear();
     renderYearlyStats();
-    document.getElementById('yearly-stats-modal').classList.add('active');
+    document.getElementById('yearly-stats-modal').classList.remove('hidden');
   });
   
   document.getElementById('close-yearly-stats-btn').addEventListener('click', () => {
-    document.getElementById('yearly-stats-modal').classList.remove('active');
+    document.getElementById('yearly-stats-modal').classList.add('hidden');
   });
 
   document.getElementById('yearly-prev').addEventListener('click', () => {
