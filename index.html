@@ -191,11 +191,15 @@
           <div class="stat-card">
             <div class="stat-icon stat-icon-mint">💳</div>
             <div class="stat-info">
-              <div class="stat-value" id="stat-wero">0%</div>
-              <div class="stat-label">Wero / Espèces</div>
+              <div class="stat-value" id="stat-wero">0% / 100%</div>
+              <div class="stat-label">
+                <span style="color: var(--gold); font-weight: 600;">Espèces</span> vs 
+                <span style="color: var(--accent); font-weight: 600;">CB/Wero</span>
+              </div>
               <div class="stats-bar-container">
                 <div class="stats-bar">
-                  <div class="stats-bar-fill stats-bar-wero" id="stats-bar-wero"></div>
+                  <div class="stats-bar-especes" id="stats-bar-especes" style="width:50%"></div>
+                  <div class="stats-bar-wero" id="stats-bar-wero" style="width:50%"></div>
                 </div>
               </div>
             </div>
@@ -271,11 +275,11 @@
             <div class="settings-card">
               <div class="settings-row">
                 <span class="settings-label">Durée standard RDV</span>
-                <span class="settings-value">1h30</span>
+                <span class="settings-value" id="set-val-duration">1h30</span>
               </div>
               <div class="settings-row">
                 <span class="settings-label">Acompte standard</span>
-                <span class="settings-value">15 €</span>
+                <span class="settings-value" id="set-val-deposit">15 €</span>
               </div>
               <div class="settings-row settings-row-action" id="export-data-btn">
                 <span class="settings-label">Exporter les données</span>
@@ -547,6 +551,60 @@
   <!-- ═══════════════════════════════════════════ -->
   <!--              TOAST NOTIFICATION            -->
   <!-- ═══════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════ -->
+  <!--              SETTINGS MODAL                 -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3 class="modal-title">Paramètres</h3>
+        <button class="icon-btn" id="settings-modal-close" type="button">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="settings-form" autocomplete="off">
+          <div class="form-section">
+            <div class="form-section-title">🏢 Entreprise</div>
+            <div class="input-group">
+              <label class="input-label">Nom de l'entreprise</label>
+              <input type="text" id="set-input-name" class="input" required />
+            </div>
+            <div class="input-group">
+              <label class="input-label">Nom de la gérante</label>
+              <input type="text" id="set-input-owner" class="input" required />
+            </div>
+            <div class="input-group">
+              <label class="input-label">SIREN</label>
+              <input type="text" id="set-input-siren" class="input" required />
+            </div>
+            <div class="input-group">
+              <label class="input-label">Adresse complète</label>
+              <input type="text" id="set-input-address" class="input" required />
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="form-section-title">⚙️ Application</div>
+            <div class="form-row-two">
+              <div class="input-group">
+                <label class="input-label">Durée standard (min)</label>
+                <input type="number" id="set-input-duration" class="input" min="15" step="15" required />
+              </div>
+              <div class="input-group">
+                <label class="input-label">Acompte standard (€)</label>
+                <input type="number" id="set-input-deposit" class="input" min="0" step="1" required />
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" id="settings-modal-cancel" style="flex:1">Annuler</button>
+            <button type="submit" class="btn btn-primary" style="flex:1">Enregistrer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container" class="toast-container"></div>
 
   <!-- ═══════════════════════════════════════════ -->
