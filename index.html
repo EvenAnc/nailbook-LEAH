@@ -238,27 +238,30 @@
         </div>
         <div class="settings-list">
           <div class="settings-section">
-            <div class="settings-section-title">Entreprise</div>
+            <div class="settings-section-title" style="display:flex; justify-content:space-between; align-items:center; padding-right:4px;">
+              Entreprise
+              <button id="edit-business-btn" class="btn btn-outline" style="padding:4px 10px; font-size:11px; height:auto; min-height:0; border-radius:var(--radius-sm);">Modifier</button>
+            </div>
             <div class="settings-card">
               <div class="settings-row">
                 <span class="settings-label">Nom</span>
-                <span class="settings-value">Nails By LV</span>
+                <span class="settings-value" id="set-val-name">Nails By LV</span>
               </div>
               <div class="settings-row">
                 <span class="settings-label">Gérante</span>
-                <span class="settings-value">Vengeons Léa Laetitia</span>
+                <span class="settings-value" id="set-val-owner">Vengeons Léa Laetitia</span>
               </div>
               <div class="settings-row">
                 <span class="settings-label">Statut</span>
-                <span class="settings-value">Entrepreneur Individuel</span>
+                <span class="settings-value" id="set-val-status">Entrepreneur Individuel</span>
               </div>
               <div class="settings-row">
                 <span class="settings-label">SIREN</span>
-                <span class="settings-value">909 529 745</span>
+                <span class="settings-value" id="set-val-siren">909 529 745</span>
               </div>
               <div class="settings-row">
                 <span class="settings-label">Adresse</span>
-                <span class="settings-value">18 Rue de l'Orient, 31000 Toulouse</span>
+                <span class="settings-value" id="set-val-address">18 Rue de l'Orient, 31000 Toulouse</span>
               </div>
             </div>
           </div>
@@ -289,7 +292,7 @@
           <div class="settings-section">
             <div class="settings-section-title">Mot de passe</div>
             <div class="settings-card">
-              <form id="change-password-form">
+              <form id="change-password-form" style="padding: 20px;">
                 <div class="input-group" style="margin-bottom:12px">
                   <label class="input-label">Mot de passe actuel</label>
                   <input type="password" id="current-password" class="input" />

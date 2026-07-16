@@ -41,6 +41,20 @@ const Store = (() => {
   }
 
   // ── localStorage operations ──
+  function loadCustomSettings() {
+    try {
+      const customBiz = JSON.parse(localStorage.getItem('nailbook_biz_settings'));
+      if (customBiz) {
+        Object.assign(CONFIG.business, customBiz);
+        if(document.getElementById('set-val-name')) document.getElementById('set-val-name').textContent = customBiz.name || CONFIG.business.name;
+        if(document.getElementById('set-val-owner')) document.getElementById('set-val-owner').textContent = customBiz.ownerName || CONFIG.business.ownerName;
+        if(document.getElementById('set-val-siren')) document.getElementById('set-val-siren').textContent = customBiz.siren || CONFIG.business.siren;
+        if(document.getElementById('set-val-address')) document.getElementById('set-val-address').textContent = customBiz.address || CONFIG.business.address;
+      }
+    } catch(e){}
+  }
+  loadCustomSettings();
+
   function lsLoad() {
     try {
       const raw = localStorage.getItem(LS_KEY);
@@ -1429,6 +1443,40 @@ const SettingsPage = (() => {
       else UI.toast('Format de fichier invalide', 'error');
       e.target.value = '';
     });
+
+    // Edit settings
+    const editBizBtn = document.getElementById('edit-business-btn');
+    if (editBizBtn) {
+      editBizBtn.addEventListener('click', async () => {
+        const name = prompt("Nom de l'entreprise :", CONFIG.business.name);
+        if (name === null) return;
+        const owner = prompt("Nom de la gérante :", CONFIG.business.ownerName);
+        if (owner === null) return;
+        const siren = prompt("Numéro SIREN :", CONFIG.business.siren);
+        if (siren === null) return;
+        const address = prompt("Adresse complète :", CONFIG.business.address);
+        if (address === null) return;
+
+        const confirmSave = await UI.confirm('⚙️', 'Enregistrer ?', 'Ces informations apparaîtront sur les futures factures.', 'Enregistrer', 'btn-primary');
+        if (!confirmSave) return;
+
+        CONFIG.business.name = name;
+        CONFIG.business.ownerName = owner;
+        CONFIG.business.siren = siren;
+        CONFIG.business.address = address;
+
+        localStorage.setItem('nailbook_biz_settings', JSON.stringify({
+          name, ownerName: owner, siren, address
+        }));
+
+        document.getElementById('set-val-name').textContent = name;
+        document.getElementById('set-val-owner').textContent = owner;
+        document.getElementById('set-val-siren').textContent = siren;
+        document.getElementById('set-val-address').textContent = address;
+        
+        UI.toast('Informations mises à jour', 'success');
+      });
+    }
 
     // Change password
     document.getElementById('change-password-form').addEventListener('submit', async e => {
