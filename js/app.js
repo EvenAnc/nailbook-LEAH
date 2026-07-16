@@ -1044,9 +1044,23 @@ const StatsPage = (() => {
 
     const appts  = Store.getByMonth(year, month);
     const done   = appts.filter(a => a.status !== 'cancelled');
-    const ca     = done.reduce((s, a) => s + (a.price || 0), 0);
-    const tips   = done.reduce((s, a) => s + (a.tipsAmount || 0), 0);
-    const weroAmt = done.filter(a => a.servicePayment === 'wero').reduce((s, a) => s + (a.price || 0), 0);
+    let ca = 0;
+    let tips = 0;
+    let weroAmt = 0;
+
+    done.forEach(a => {
+      const price = a.price || 0;
+      ca += price;
+      tips += (a.tipsAmount || 0);
+
+      const hasDeposit = a.depositPayment === 'wero' || a.depositPayment === 'especes';
+      const depAmt = hasDeposit ? (CONFIG.business.defaultDeposit || 15) : 0;
+      const restAmt = Math.max(0, price - depAmt);
+
+      if (a.depositPayment === 'wero') weroAmt += depAmt;
+      if (a.servicePayment === 'wero') weroAmt += restAmt;
+    });
+
     const totalAmt = ca || 1;
     const weroPct = Math.round((weroAmt / totalAmt) * 100);
 
@@ -1153,9 +1167,23 @@ const Invoice = (() => {
     const counter     = Store.incrementInvoiceCounter();
     const invoiceNum  = `${year}-${String(month + 1).padStart(2, '0')}-${String(counter).padStart(3, '0')}`;
 
-    const ca    = done.reduce((s, a) => s + (a.price || 0), 0);
-    const tips  = done.reduce((s, a) => s + (a.tipsAmount || 0), 0);
-    const wero  = done.filter(a => a.servicePayment === 'wero').reduce((s, a) => s + (a.price || 0), 0);
+    let ca = 0;
+    let tips = 0;
+    let wero = 0;
+
+    done.forEach(a => {
+      const price = a.price || 0;
+      ca += price;
+      tips += (a.tipsAmount || 0);
+
+      const hasDeposit = a.depositPayment === 'wero' || a.depositPayment === 'especes';
+      const depAmt = hasDeposit ? (CONFIG.business.defaultDeposit || 15) : 0;
+      const restAmt = Math.max(0, price - depAmt);
+
+      if (a.depositPayment === 'wero') wero += depAmt;
+      if (a.servicePayment === 'wero') wero += restAmt;
+    });
+    
     const cash  = ca - wero;
     const total = ca + tips;
 
