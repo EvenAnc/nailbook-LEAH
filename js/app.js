@@ -165,8 +165,9 @@ const Store = (() => {
 
     getByMonth(year, month) {
       return appointments.filter(a => {
-        const d = new Date(a.date);
-        return d.getFullYear() === year && d.getMonth() === month;
+        if (!a.date) return false;
+        const [y, m] = a.date.split('-').map(Number);
+        return y === year && m - 1 === month;
       });
     },
 
@@ -373,7 +374,7 @@ const Calendar = (() => {
     const prevDays = new Date(currentYear, currentMonth, 0).getDate();
 
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
     const allAppts = Store.getAll();
 
     // Previous month days
@@ -986,7 +987,7 @@ const StatsPage = (() => {
     if (filter === 'confirmed') appts = appts.filter(a => a.status !== 'cancelled');
     if (filter === 'cancelled') appts = appts.filter(a => a.status === 'cancelled');
 
-    appts.sort((a, b) => a.date.localeCompare(a.date) || a.time.localeCompare(b.time));
+    appts.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
 
     list.innerHTML = '';
     if (appts.length === 0) {
@@ -1401,7 +1402,8 @@ async function initApp() {
     document.getElementById('auth-screen').classList.remove('hidden');
     document.getElementById('app').classList.add('hidden');
   } else {
-    showApp();
+    document.getElementById('auth-screen').classList.add('hidden');
+    await showApp();
   }
 
   // Password toggle
@@ -1413,15 +1415,23 @@ async function initApp() {
   // Auth form submit
   document.getElementById('auth-form').addEventListener('submit', async e => {
     e.preventDefault();
+    const submitBtn = e.target.querySelector('[type=submit]');
+    submitBtn.textContent = '...';
+    submitBtn.disabled = true;
     const pwd = document.getElementById('password-input').value;
     const ok  = await Auth.verify(pwd);
+    submitBtn.textContent = 'Accéder';
+    submitBtn.disabled = false;
     if (ok) {
       Auth.login();
-      document.getElementById('auth-screen').style.animation = 'fadeOut .3s ease forwards';
-      document.getElementById('auth-screen').style.opacity = '0';
-      setTimeout(() => {
-        document.getElementById('auth-screen').classList.add('hidden');
-        showApp();
+      const screen = document.getElementById('auth-screen');
+      screen.style.transition = 'opacity .3s ease';
+      screen.style.opacity = '0';
+      setTimeout(async () => {
+        screen.classList.add('hidden');
+        screen.style.opacity = '';
+        screen.style.transition = '';
+        await showApp();
       }, 300);
     } else {
       document.getElementById('auth-error').classList.remove('hidden');
@@ -1433,14 +1443,15 @@ async function initApp() {
   // Logout buttons
   function doLogout() {
     Auth.logout();
+    appInitialized = false; // reset so showApp can run again next login
     document.getElementById('app').classList.add('hidden');
-    document.getElementById('auth-screen').classList.remove('hidden');
-    document.getElementById('auth-screen').style.opacity = '1';
-    document.getElementById('auth-screen').style.animation = '';
+    const screen = document.getElementById('auth-screen');
+    screen.classList.remove('hidden');
     document.getElementById('password-input').value = '';
+    document.getElementById('auth-error').classList.add('hidden');
   }
-  document.getElementById('logout-btn-desk')?.addEventListener('click', doLogout);
-  document.getElementById('logout-btn-settings')?.addEventListener('click', doLogout);
+  document.getElementById('logout-btn-desk').addEventListener('click', doLogout);
+  document.getElementById('logout-btn-settings').addEventListener('click', doLogout);
 
   // FAB
   document.getElementById('fab-btn').addEventListener('click', () => {
@@ -1449,7 +1460,12 @@ async function initApp() {
   });
 }
 
+let appInitialized = false;
+
 async function showApp() {
+  if (appInitialized) return; // prevent double-init
+  appInitialized = true;
+
   document.getElementById('app').classList.remove('hidden');
 
   // Init store
