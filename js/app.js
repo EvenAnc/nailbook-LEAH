@@ -1220,24 +1220,22 @@ const Invoice = (() => {
     const invoiceNum  = `${year}-${String(month + 1).padStart(2, '0')}-${String(counter).padStart(3, '0')}`;
 
     let ca = 0;
-    let tips = 0;
     let wero = 0;
 
     done.forEach(a => {
       const price = a.price || 0;
       ca += price;
-      const tipsAmt = a.tipsAmount || 0;
-      tips += tipsAmt;
 
       const hasDeposit = a.depositPayment === 'wero' || a.depositPayment === 'especes';
       const depAmt = hasDeposit ? (CONFIG.business.defaultDeposit || 15) : 0;
       const restAmt = Math.max(0, price - depAmt);
 
       if (a.depositPayment === 'wero') wero += depAmt;
-      if (a.servicePayment === 'wero') wero += (restAmt + tipsAmt);
+      // On n'inclut que le montant de la prestation dans le CA du PDF
+      if (a.servicePayment === 'wero') wero += restAmt;
     });
     
-    const total = ca + tips;
+    const total = ca;
     const cash  = total - wero;
 
     // Table rows
@@ -1250,7 +1248,6 @@ const Invoice = (() => {
         { text: 'Nom',       style: 'tableHeader' },
         { text: 'Prestation',style: 'tableHeader' },
         { text: 'Paiement',  style: 'tableHeader' },
-        { text: 'Tips (€)',  style: 'tableHeader' },
         { text: 'Montant',   style: 'tableHeader' },
       ],
       ...done.map((a, i) => {
@@ -1264,7 +1261,6 @@ const Invoice = (() => {
           { text: a.clientLastName  || '',       fillColor, fontSize: 9 },
           { text: svc ? svc.label : a.serviceType, fillColor, fontSize: 9 },
           { text: CONFIG.paymentLabels[a.servicePayment] || '—', fillColor, fontSize: 9 },
-          { text: a.hasTips ? Number(a.tipsAmount).toFixed(2) : '—', fillColor, fontSize: 9, alignment: 'right' },
           { text: Number(a.price || 0).toFixed(2) + ' €', fillColor, fontSize: 9, alignment: 'right', bold: true },
         ];
       }),
@@ -1321,7 +1317,7 @@ const Invoice = (() => {
         {
           table: {
             headerRows: 1,
-            widths: [38, 30, 60, 62, 80, 46, 38, 50],
+            widths: [40, 35, 70, 70, 95, 55, 50],
             body: tableBody,
           },
           layout: {
@@ -1350,10 +1346,6 @@ const Invoice = (() => {
                   [
                     { text: 'Total des prestations HT', style: 'summaryLabel' },
                     { text: ca.toFixed(2) + ' €', style: 'summaryValue' },
-                  ],
-                  [
-                    { text: 'Total des tips', style: 'summaryLabel' },
-                    { text: tips.toFixed(2) + ' €', style: 'summaryLabel' },
                   ],
                   [
                     { text: 'Paiements Wero', style: 'summaryLabel' },
