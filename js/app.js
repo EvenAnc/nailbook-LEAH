@@ -487,7 +487,7 @@ const Calendar = (() => {
 
   function createDayCell(year, month, day, isOther, allAppts, todayStr) {
     const date = new Date(year, month, day);
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     const dayAppts = allAppts.filter(a => a.date === dateStr && a.status !== 'cancelled');
 
     const cell = document.createElement('div');
@@ -529,7 +529,7 @@ const Calendar = (() => {
   }
 
   function renderDayView() {
-    const dateStr = dayViewDate.toISOString().split('T')[0];
+    const dateStr = `${dayViewDate.getFullYear()}-${String(dayViewDate.getMonth() + 1).padStart(2, '0')}-${String(dayViewDate.getDate()).padStart(2, '0')}`;
     const appts = Store.getByDate(dateStr).sort((a, b) => a.time.localeCompare(b.time));
 
     document.getElementById('day-view-title').textContent =
@@ -604,7 +604,7 @@ const Calendar = (() => {
     },
     getCurrentDate: () => ({
       year: currentYear, month: currentMonth,
-      dayViewDate: dayViewDate.toISOString().split('T')[0],
+      dayViewDate: `${dayViewDate.getFullYear()}-${String(dayViewDate.getMonth() + 1).padStart(2, '0')}-${String(dayViewDate.getDate()).padStart(2, '0')}`,
     }),
   };
 })();
@@ -796,7 +796,8 @@ const AppointmentModal = (() => {
       document.getElementById('save-appt-btn').textContent = 'Enregistrer';
 
       // Default date
-      const dateStr = prefillDate || new Date().toISOString().split('T')[0];
+      const d = new Date();
+      const dateStr = prefillDate || `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       document.getElementById('appt-date').value = dateStr;
       document.getElementById('appt-time').value = '09:00';
       document.getElementById('appt-duration').value = '90';
@@ -1419,7 +1420,8 @@ const SettingsPage = (() => {
       const blob   = new Blob([data], { type: 'application/json' });
       const url    = URL.createObjectURL(blob);
       const a      = document.createElement('a');
-      const date   = new Date().toISOString().split('T')[0];
+      const d = new Date();
+      const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       a.href       = url;
       a.download   = `nailbook_backup_${date}.json`;
       a.click();
