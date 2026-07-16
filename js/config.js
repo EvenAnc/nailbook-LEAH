@@ -32,6 +32,7 @@ const CONFIG = {
   // Email de connexion autorisé (à créer dans Firebase Authentication)
   auth: {
     email: 'RETIRE',
+    passwordHash: 'RETIRE',
   },
 
   // ─── FIREBASE ──────────────────────────────────
