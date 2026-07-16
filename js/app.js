@@ -200,9 +200,34 @@ const Store = (() => {
 // ══════════════════════════════════════════════════
 const Auth = (() => {
   const SESSION_KEY = 'nailbook_session';
-
   const LOCK_KEY = 'nailbook_lock';
   const ATTEMPTS_KEY = 'nailbook_attempts';
+
+  let fbAuthInstance = null;
+
+  function initFbAuth() {
+    const m = window.__fbModules;
+    if (m && CONFIG.firebase.apiKey !== 'FIREBASE_API_KEY') {
+      const app = m.initializeApp(CONFIG.firebase);
+      fbAuthInstance = m.getAuth(app);
+    }
+  }
+
+  function onAuthStateReady(callback) {
+    initFbAuth();
+    if (fbAuthInstance) {
+      window.__fbModules.onAuthStateChanged(fbAuthInstance, user => {
+        if (user) {
+          sessionStorage.setItem(SESSION_KEY, 'authenticated');
+        } else {
+          sessionStorage.removeItem(SESSION_KEY);
+        }
+        callback(!!user);
+      });
+    } else {
+      callback(sessionStorage.getItem(SESSION_KEY) === 'authenticated');
+    }
+  }
 
   async function hashPassword(pwd) {
     const buf = await crypto.subtle.digest(
@@ -212,19 +237,21 @@ const Auth = (() => {
       .map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
-  function isLoggedIn() {
-    return sessionStorage.getItem(SESSION_KEY) === 'authenticated';
-  }
-
   function login() { 
     sessionStorage.setItem(SESSION_KEY, 'authenticated'); 
     localStorage.removeItem(ATTEMPTS_KEY);
     localStorage.removeItem(LOCK_KEY);
   }
   
-  function logout() { sessionStorage.removeItem(SESSION_KEY); }
+  async function logout() { 
+    if (fbAuthInstance) {
+      await window.__fbModules.signOut(fbAuthInstance);
+    }
+    sessionStorage.removeItem(SESSION_KEY); 
+  }
 
   function checkLock() {
+    if (fbAuthInstance) return 0; // Firebase gère son propre bruteforce (bloque le compte)
     const lockUntil = parseInt(localStorage.getItem(LOCK_KEY) || '0', 10);
     if (lockUntil > Date.now()) {
       return Math.ceil((lockUntil - Date.now()) / 1000);
@@ -233,6 +260,7 @@ const Auth = (() => {
   }
 
   function recordAttempt(success) {
+    if (fbAuthInstance) return; // Inutile si Firebase géré
     if (success) {
       localStorage.removeItem(ATTEMPTS_KEY);
       localStorage.removeItem(LOCK_KEY);
@@ -240,7 +268,6 @@ const Auth = (() => {
       let attempts = parseInt(localStorage.getItem(ATTEMPTS_KEY) || '0', 10) + 1;
       localStorage.setItem(ATTEMPTS_KEY, attempts.toString());
       if (attempts >= 5) {
-        // Exponential backoff: 1m, 2m, 4m... based on attempts above 4
         const lockMinutes = Math.pow(2, attempts - 5);
         localStorage.setItem(LOCK_KEY, (Date.now() + lockMinutes * 60000).toString());
       }
@@ -248,14 +275,29 @@ const Auth = (() => {
   }
 
   async function verify(pwd) {
-    if (checkLock() > 0) return { ok: false, locked: true };
-    const hash = await hashPassword(pwd);
-    const ok = hash === Store.getPasswordHash();
-    recordAttempt(ok);
-    return { ok, locked: false };
+    if (fbAuthInstance) {
+      try {
+        await window.__fbModules.signInWithEmailAndPassword(fbAuthInstance, CONFIG.auth.email, pwd);
+        return { ok: true, locked: false };
+      } catch (err) {
+        if (err.code === 'auth/too-many-requests') return { ok: false, locked: true };
+        return { ok: false, locked: false };
+      }
+    } else {
+      // Fallback mode hors-ligne sans Firebase
+      if (checkLock() > 0) return { ok: false, locked: true };
+      const hash = await hashPassword(pwd);
+      const ok = hash === Store.getPasswordHash();
+      recordAttempt(ok);
+      return { ok, locked: false };
+    }
   }
 
   async function changePassword(currentPwd, newPwd) {
+    // Note: Modifier un mot de passe Firebase via Web nécessite plus de code (re-authentication).
+    // Si Firebase, l'utilisateur doit le changer depuis la console Firebase pour plus de sécurité.
+    if (fbAuthInstance) return false; 
+    
     const res = await verify(currentPwd);
     if (!res.ok) return false;
     const newHash = await hashPassword(newPwd);
@@ -263,7 +305,7 @@ const Auth = (() => {
     return true;
   }
 
-  return { hashPassword, isLoggedIn, login, logout, verify, changePassword, checkLock };
+  return { onAuthStateReady, login, logout, verify, changePassword, checkLock };
 })();
 
 // ══════════════════════════════════════════════════
@@ -1409,6 +1451,12 @@ const SettingsPage = (() => {
         return;
       }
 
+      if (CONFIG.firebase.apiKey !== 'FIREBASE_API_KEY') {
+        msg.textContent = '❌ En mode Firebase, modifie ton mot de passe depuis la Console Firebase.';
+        msg.style.color = 'var(--danger)';
+        msg.classList.remove('hidden');
+        return;
+      }
       const ok = await Auth.changePassword(current, newPwd);
       if (ok) {
         msg.textContent = '✅ Mot de passe modifié avec succès';
@@ -1432,13 +1480,15 @@ const SettingsPage = (() => {
 // ══════════════════════════════════════════════════
 async function initApp() {
   // ── Auth screen ──
-  if (!Auth.isLoggedIn()) {
-    document.getElementById('auth-screen').classList.remove('hidden');
-    document.getElementById('app').classList.add('hidden');
-  } else {
-    document.getElementById('auth-screen').classList.add('hidden');
-    await showApp();
-  }
+  Auth.onAuthStateReady(async (isAuthenticated) => {
+    if (!isAuthenticated) {
+      document.getElementById('auth-screen').classList.remove('hidden');
+      document.getElementById('app').classList.add('hidden');
+    } else {
+      document.getElementById('auth-screen').classList.add('hidden');
+      await showApp();
+    }
+  });
 
   // Password toggle
   document.getElementById('toggle-password').addEventListener('click', () => {
@@ -1492,8 +1542,8 @@ async function initApp() {
   });
 
   // Logout buttons
-  function doLogout() {
-    Auth.logout();
+  async function doLogout() {
+    await Auth.logout();
     appInitialized = false; // reset so showApp can run again next login
     document.getElementById('app').classList.add('hidden');
     const screen = document.getElementById('auth-screen');

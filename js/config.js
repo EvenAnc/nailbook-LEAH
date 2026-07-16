@@ -29,12 +29,9 @@ const CONFIG = {
   },
 
   // ─── AUTHENTIFICATION ──────────────────────────
-  // Mot de passe par défaut : RETIRE
-  // Pour changer : remplacez la valeur de passwordHash par le SHA-256
-  // du nouveau mot de passe. Utilisez : https://emn178.github.io/online-tools/sha256.html
-  // Exemple : SHA-256("RETIRE") = RETIRE
+  // Email de connexion autorisé (à créer dans Firebase Authentication)
   auth: {
-    passwordHash: 'RETIRE',
+    email: 'RETIRE',
   },
 
   // ─── FIREBASE ──────────────────────────────────
