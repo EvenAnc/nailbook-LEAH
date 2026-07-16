@@ -1,0 +1,16 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Règle par défaut : tout bloquer
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Autoriser la lecture et l'écriture sur la collection appointments
+    // UNIQUEMENT si l'utilisateur est authentifié via Firebase Auth
+    match /appointments/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

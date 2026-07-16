@@ -4,11 +4,15 @@ Application de gestion des rendez-vous et comptabilité pour prothésiste ongula
 
 ---
 
-## 🔐 Connexion
+## 🔐 Connexion (Firebase Auth)
 
-**Mot de passe par défaut :** `nailsbylv`
+L'application est entièrement sécurisée par **Firebase Authentication** pour empêcher tout vol de données sur GitHub Pages.
 
-Pour changer le mot de passe : allez dans l'app → onglet **Réglages** → "Mot de passe"
+**Identifiants :**
+- **Email :** `contact@nailsbylv.fr` (ou celui que tu configureras dans `config.js`)
+- **Mot de passe :** Celui que tu créeras à l'Étape 3 ci-dessous.
+
+> ⚠️ Le mot de passe ne se modifie plus dans l'application, mais depuis ta console Firebase !
 
 ---
 
@@ -32,24 +36,38 @@ Pour que les données soient synchronisées entre ton téléphone et ton PC, il 
 4. Choisir la région : `eur3 (europe-west)` (serveurs en Europe)
 5. Cliquer **Activer**
 
-### Étape 3 — Configurer les règles Firestore
+### Étape 3 — Configurer l'Authentification (Sécurité)
 
-Dans **Firestore → Règles**, coller :
+1. Dans le menu de gauche : **Build → Authentication**
+2. Cliquer sur **Commencer**
+3. Dans l'onglet **Sign-in method**, choisir **Adresse e-mail/Mot de passe**
+4. Activer le premier bouton et cliquer sur **Enregistrer**
+5. Aller dans l'onglet **Users** (Utilisateurs) en haut
+6. Cliquer sur **Add user** (Ajouter un utilisateur)
+7. Entrer ton email : `contact@nailsbylv.fr`
+8. Choisir un mot de passe très sécurisé et cliquer sur **Ajouter un utilisateur**
 
-```
+### Étape 4 — Configurer les règles Firestore (Le Cadenas)
+
+Dans **Firestore Database → Règles**, copier et coller ce code exact pour verrouiller la base de données :
+
+```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
     match /appointments/{doc} {
-      allow read, write: if true;
+      // Seule l'utilisatrice avec son mot de passe peut lire et écrire
+      allow read, write: if request.auth != null;
     }
   }
 }
 ```
+Cliquer sur **Publier**.
 
-*(Règles simples pour un usage personnel — une seule utilisatrice)*
-
-### Étape 4 — Récupérer les clés Firebase
+### Étape 5 — Récupérer les clés Firebase
 
 1. Dans le menu Firebase : **Paramètres du projet → Général**
 2. Descendre jusqu'à "Vos applications"
@@ -57,9 +75,9 @@ service cloud.firestore {
 4. Enregistrer l'application avec le nom `nailbook`
 5. **Copier les valeurs** de `firebaseConfig`
 
-### Étape 5 — Mettre à jour la config
+### Étape 6 — Mettre à jour la config
 
-Ouvrir le fichier `js/config.js` et remplacer la section `firebase` :
+Ouvrir le fichier `js/config.js` et vérifier que `auth.email` correspond bien, puis remplacer la section `firebase` :
 
 ```javascript
 firebase: {

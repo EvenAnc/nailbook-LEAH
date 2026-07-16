@@ -29,12 +29,9 @@ const CONFIG = {
   },
 
   // ─── AUTHENTIFICATION ──────────────────────────
-  // Mot de passe par défaut : nailsbylv
-  // Pour changer : remplacez la valeur de passwordHash par le SHA-256
-  // du nouveau mot de passe. Utilisez : https://emn178.github.io/online-tools/sha256.html
-  // Exemple : SHA-256("nailsbylv") = cf0cc70d...
+  // Email de connexion autorisé (à créer dans Firebase Authentication)
   auth: {
-    passwordHash: 'cf0cc70da1a8e55b67691498b320461473d0d85844dcfe65c26727e6477b6a89',
+    email: 'contact@nailsbylv.fr',
   },
 
   // ─── FIREBASE ──────────────────────────────────

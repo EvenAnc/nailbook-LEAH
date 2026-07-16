@@ -564,10 +564,14 @@
       getFirestore, collection, doc, addDoc, updateDoc, deleteDoc,
       getDocs, onSnapshot, query, orderBy, setDoc, getDoc
     } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+    import {
+      getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+    } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
     window.__fbModules = {
       initializeApp, getFirestore, collection, doc, addDoc, updateDoc,
-      deleteDoc, getDocs, onSnapshot, query, orderBy, setDoc, getDoc
+      deleteDoc, getDocs, onSnapshot, query, orderBy, setDoc, getDoc,
+      getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
     };
 
     // Load main app after Firebase modules are available
