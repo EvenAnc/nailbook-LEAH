@@ -1051,17 +1051,18 @@ const StatsPage = (() => {
     done.forEach(a => {
       const price = a.price || 0;
       ca += price;
-      tips += (a.tipsAmount || 0);
+      const tipsAmt = a.tipsAmount || 0;
+      tips += tipsAmt;
 
       const hasDeposit = a.depositPayment === 'wero' || a.depositPayment === 'especes';
       const depAmt = hasDeposit ? (CONFIG.business.defaultDeposit || 15) : 0;
       const restAmt = Math.max(0, price - depAmt);
 
       if (a.depositPayment === 'wero') weroAmt += depAmt;
-      if (a.servicePayment === 'wero') weroAmt += restAmt;
+      if (a.servicePayment === 'wero') weroAmt += (restAmt + tipsAmt);
     });
 
-    const totalAmt = ca || 1;
+    const totalAmt = (ca + tips) || 1;
     const weroPct = Math.round((weroAmt / totalAmt) * 100);
 
     document.getElementById('stat-ca').textContent   = UI.formatCurrency(ca);
@@ -1125,7 +1126,7 @@ const StatsPage = (() => {
             ${a.hasTips ? ` · Tips +${UI.formatCurrency(a.tipsAmount)}` : ''}
           </div>
         </div>
-        <div class="appt-list-price">${UI.formatCurrency(a.price)}</div>
+        <div class="appt-list-price">${UI.formatCurrency((a.price || 0) + (a.tipsAmount || 0))}</div>
       `;
       item.addEventListener('click', () => AppointmentModal.open(a.id));
       list.appendChild(item);
@@ -1174,18 +1175,19 @@ const Invoice = (() => {
     done.forEach(a => {
       const price = a.price || 0;
       ca += price;
-      tips += (a.tipsAmount || 0);
+      const tipsAmt = a.tipsAmount || 0;
+      tips += tipsAmt;
 
       const hasDeposit = a.depositPayment === 'wero' || a.depositPayment === 'especes';
       const depAmt = hasDeposit ? (CONFIG.business.defaultDeposit || 15) : 0;
       const restAmt = Math.max(0, price - depAmt);
 
       if (a.depositPayment === 'wero') wero += depAmt;
-      if (a.servicePayment === 'wero') wero += restAmt;
+      if (a.servicePayment === 'wero') wero += (restAmt + tipsAmt);
     });
     
-    const cash  = ca - wero;
     const total = ca + tips;
+    const cash  = total - wero;
 
     // Table rows
     const tableBody = [

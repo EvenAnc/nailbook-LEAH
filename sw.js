@@ -3,7 +3,7 @@
 // Cache-first strategy for offline support
 // ══════════════════════════════════════════════════
 
-const CACHE_NAME = 'nailbook-v1.0.3';
+const CACHE_NAME = 'nailbook-v1.0.4';
 
 const ASSETS_TO_CACHE = [
   './',
