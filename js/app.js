@@ -201,6 +201,9 @@ const Store = (() => {
 const Auth = (() => {
   const SESSION_KEY = 'nailbook_session';
 
+  const LOCK_KEY = 'nailbook_lock';
+  const ATTEMPTS_KEY = 'nailbook_attempts';
+
   async function hashPassword(pwd) {
     const buf = await crypto.subtle.digest(
       'SHA-256', new TextEncoder().encode(pwd)
@@ -213,23 +216,54 @@ const Auth = (() => {
     return sessionStorage.getItem(SESSION_KEY) === 'authenticated';
   }
 
-  function login() { sessionStorage.setItem(SESSION_KEY, 'authenticated'); }
+  function login() { 
+    sessionStorage.setItem(SESSION_KEY, 'authenticated'); 
+    localStorage.removeItem(ATTEMPTS_KEY);
+    localStorage.removeItem(LOCK_KEY);
+  }
+  
   function logout() { sessionStorage.removeItem(SESSION_KEY); }
 
+  function checkLock() {
+    const lockUntil = parseInt(localStorage.getItem(LOCK_KEY) || '0', 10);
+    if (lockUntil > Date.now()) {
+      return Math.ceil((lockUntil - Date.now()) / 1000);
+    }
+    return 0;
+  }
+
+  function recordAttempt(success) {
+    if (success) {
+      localStorage.removeItem(ATTEMPTS_KEY);
+      localStorage.removeItem(LOCK_KEY);
+    } else {
+      let attempts = parseInt(localStorage.getItem(ATTEMPTS_KEY) || '0', 10) + 1;
+      localStorage.setItem(ATTEMPTS_KEY, attempts.toString());
+      if (attempts >= 5) {
+        // Exponential backoff: 1m, 2m, 4m... based on attempts above 4
+        const lockMinutes = Math.pow(2, attempts - 5);
+        localStorage.setItem(LOCK_KEY, (Date.now() + lockMinutes * 60000).toString());
+      }
+    }
+  }
+
   async function verify(pwd) {
+    if (checkLock() > 0) return { ok: false, locked: true };
     const hash = await hashPassword(pwd);
-    return hash === Store.getPasswordHash();
+    const ok = hash === Store.getPasswordHash();
+    recordAttempt(ok);
+    return { ok, locked: false };
   }
 
   async function changePassword(currentPwd, newPwd) {
-    const ok = await verify(currentPwd);
-    if (!ok) return false;
+    const res = await verify(currentPwd);
+    if (!res.ok) return false;
     const newHash = await hashPassword(newPwd);
     Store.setPasswordHash(newHash);
     return true;
   }
 
-  return { hashPassword, isLoggedIn, login, logout, verify, changePassword };
+  return { hashPassword, isLoggedIn, login, logout, verify, changePassword, checkLock };
 })();
 
 // ══════════════════════════════════════════════════
@@ -1416,13 +1450,30 @@ async function initApp() {
   document.getElementById('auth-form').addEventListener('submit', async e => {
     e.preventDefault();
     const submitBtn = e.target.querySelector('[type=submit]');
+    
+    const lockTime = Auth.checkLock();
+    if (lockTime > 0) {
+      const err = document.getElementById('auth-error');
+      err.textContent = `🔒 Sécurité : Trop de tentatives. Réessayez dans ${lockTime}s.`;
+      err.classList.remove('hidden');
+      return;
+    }
+
     submitBtn.textContent = '...';
     submitBtn.disabled = true;
     const pwd = document.getElementById('password-input').value;
-    const ok  = await Auth.verify(pwd);
+    const res = await Auth.verify(pwd);
     submitBtn.textContent = 'Accéder';
     submitBtn.disabled = false;
-    if (ok) {
+    
+    if (res.locked) {
+      const err = document.getElementById('auth-error');
+      err.textContent = `🔒 Compte verrouillé pour sécurité.`;
+      err.classList.remove('hidden');
+      return;
+    }
+
+    if (res.ok) {
       Auth.login();
       const screen = document.getElementById('auth-screen');
       screen.style.transition = 'opacity .3s ease';
