@@ -36,15 +36,13 @@ const CONFIG = {
   },
 
   // ─── FIREBASE ──────────────────────────────────
-  // Configuration Firebase — À remplacer avec vos propres clés
-  // Créer un projet sur https://console.firebase.google.com
   firebase: {
-    apiKey:            'FIREBASE_API_KEY',
-    authDomain:        'FIREBASE_PROJECT_ID.firebaseapp.com',
-    projectId:         'FIREBASE_PROJECT_ID',
-    storageBucket:     'FIREBASE_PROJECT_ID.appspot.com',
-    messagingSenderId: 'FIREBASE_SENDER_ID',
-    appId:             'FIREBASE_APP_ID',
+    apiKey:            'AIzaSyAd0k10MwdsAvSwPkJUsTnzuOeF0CgIxx4',
+    authDomain:        'compta-nails-leah.firebaseapp.com',
+    projectId:         'compta-nails-leah',
+    storageBucket:     'compta-nails-leah.firebasestorage.app',
+    messagingSenderId: '418301179197',
+    appId:             '1:418301179197:web:efee83b873fd3fe4418154',
   },
 
   // ─── COULEURS PRESTATIONS ──────────────────────
