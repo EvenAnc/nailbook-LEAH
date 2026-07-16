@@ -9,8 +9,8 @@ Application de gestion des rendez-vous et comptabilité pour prothésiste ongula
 L'application est entièrement sécurisée par **Firebase Authentication** pour empêcher tout vol de données sur GitHub Pages.
 
 **Identifiants :**
-- **Email :** `contact@nailsbylv.fr` (ou celui que tu configureras dans `config.js`)
-- **Mot de passe :** Celui que tu créeras à l'Étape 3 ci-dessous.
+- **Email :** `leavengeons@gmail.com` (ou celui que tu configureras dans `config.js`)
+- **Mot de passe :** `d0M41n-leah` (à créer dans Firebase ou par défaut en hors-ligne)
 
 > ⚠️ Le mot de passe ne se modifie plus dans l'application, mais depuis ta console Firebase !
 
@@ -44,8 +44,8 @@ Pour que les données soient synchronisées entre ton téléphone et ton PC, il 
 4. Activer le premier bouton et cliquer sur **Enregistrer**
 5. Aller dans l'onglet **Users** (Utilisateurs) en haut
 6. Cliquer sur **Add user** (Ajouter un utilisateur)
-7. Entrer ton email : `contact@nailsbylv.fr`
-8. Choisir un mot de passe très sécurisé et cliquer sur **Ajouter un utilisateur**
+7. Entrer l'email de Léa : `leavengeons@gmail.com`
+8. Choisir son mot de passe : `d0M41n-leah` et cliquer sur **Ajouter un utilisateur**
 
 ### Étape 4 — Configurer les règles Firestore (Le Cadenas)
 

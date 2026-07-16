@@ -31,7 +31,8 @@ const CONFIG = {
   // ─── AUTHENTIFICATION ──────────────────────────
   // Email de connexion autorisé (à créer dans Firebase Authentication)
   auth: {
-    email: 'contact@nailsbylv.fr',
+    email: 'leavengeons@gmail.com',
+    passwordHash: '12bbb2c5c0885fe3f9f898ca4b3e759bffa30fdeed20162ecfc3aab727b99dfa',
   },
 
   // ─── FIREBASE ──────────────────────────────────
