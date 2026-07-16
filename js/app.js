@@ -437,6 +437,8 @@ const Calendar = (() => {
       switchView('day');
     });
 
+    document.getElementById('day-back').addEventListener('click', () => switchView('month'));
+
     document.getElementById('day-prev').addEventListener('click', () => {
       dayViewDate.setDate(dayViewDate.getDate() - 1);
       renderDayView();
@@ -1081,6 +1083,8 @@ const StatsPage = (() => {
     document.getElementById('download-invoice-btn').addEventListener('click', () => {
       Invoice.generate(year, month);
     });
+
+    initYearlyStats();
   }
 
   function render() {
@@ -1764,6 +1768,98 @@ function checkMonthEndReminder() {
         localStorage.setItem(key, '1');
       }, 2000);
     }
+  }
+}
+
+// ─── YEARLY STATS ──────────────────────────────────────────
+let currentYearlyYear = new Date().getFullYear();
+
+function initYearlyStats() {
+  document.getElementById('btn-yearly-stats').addEventListener('click', () => {
+    // On open, reset to current year
+    currentYearlyYear = new Date().getFullYear();
+    renderYearlyStats();
+    document.getElementById('yearly-stats-modal').classList.add('active');
+  });
+  
+  document.getElementById('close-yearly-stats-btn').addEventListener('click', () => {
+    document.getElementById('yearly-stats-modal').classList.remove('active');
+  });
+
+  document.getElementById('yearly-prev').addEventListener('click', () => {
+    currentYearlyYear--;
+    renderYearlyStats();
+  });
+
+  document.getElementById('yearly-next').addEventListener('click', () => {
+    currentYearlyYear++;
+    renderYearlyStats();
+  });
+}
+
+function renderYearlyStats() {
+  document.getElementById('yearly-label').textContent = currentYearlyYear;
+  
+  const allAppts = Store.getAll();
+  let totalCA = 0;
+  let totalRDV = 0;
+  
+  const monthlyCA = Array(12).fill(0);
+  const monthlyRDV = Array(12).fill(0);
+  
+  allAppts.forEach(a => {
+    if (!a.date || !a.date.startsWith(currentYearlyYear.toString()) || a.status === 'cancelled') return;
+    const m = parseInt(a.date.split('-')[1], 10) - 1;
+    if (m >= 0 && m <= 11) {
+      const ca = (a.price || 0) + (a.tipsAmount || 0);
+      monthlyCA[m] += ca;
+      monthlyRDV[m]++;
+      totalCA += ca;
+      totalRDV++;
+    }
+  });
+
+  document.getElementById('yearly-total-ca').textContent = UI.formatCurrency(totalCA);
+  document.getElementById('yearly-total-rdv').textContent = totalRDV;
+
+  const chart = document.getElementById('yearly-chart');
+  const labels = document.getElementById('yearly-chart-labels');
+  chart.innerHTML = '';
+  labels.innerHTML = '';
+
+  const maxCA = Math.max(...monthlyCA, 1);
+  const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+
+  for (let i = 0; i < 12; i++) {
+    const heightPercent = (monthlyCA[i] / maxCA) * 100;
+    
+    const barWrapper = document.createElement('div');
+    barWrapper.style.flex = '1';
+    barWrapper.style.display = 'flex';
+    barWrapper.style.flexDirection = 'column';
+    barWrapper.style.justifyContent = 'flex-end';
+    barWrapper.style.alignItems = 'center';
+    barWrapper.style.height = '100%';
+    
+    const bar = document.createElement('div');
+    bar.style.width = '70%';
+    bar.style.height = `${Math.max(heightPercent, 2)}%`; // 2% minimum height for empty months
+    bar.style.background = monthlyCA[i] > 0 ? 'var(--accent)' : 'var(--border-light)';
+    bar.style.borderRadius = '4px 4px 0 0';
+    bar.style.transition = 'height 0.3s ease';
+    
+    if (monthlyCA[i] > 0) {
+      bar.title = `${monthNames[i]}: ${UI.formatCurrency(monthlyCA[i])} (${monthlyRDV[i]} RDV)`;
+    }
+
+    barWrapper.appendChild(bar);
+    chart.appendChild(barWrapper);
+
+    const label = document.createElement('div');
+    label.style.flex = '1';
+    label.style.textAlign = 'center';
+    label.textContent = monthNames[i];
+    labels.appendChild(label);
   }
 }
 
