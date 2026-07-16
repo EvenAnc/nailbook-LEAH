@@ -543,29 +543,71 @@ const Calendar = (() => {
 
     const timeline = document.getElementById('timeline');
     timeline.innerHTML = '';
+    timeline.style.position = 'relative';
 
-    // Build timeline 8h-20h
+    // Build timeline 8h-20h (background grid)
     for (let h = 8; h <= 20; h++) {
       const slot = document.createElement('div');
       slot.className = 'timeline-slot';
+      slot.style.height = '60px'; // 1 min = 1 px
+      slot.style.boxSizing = 'border-box';
+      slot.style.borderBottom = '1px solid var(--border-light)';
+      slot.style.display = 'flex';
 
       const timeEl = document.createElement('div');
       timeEl.className = 'timeline-time';
       timeEl.textContent = `${h}:00`;
-
-      const content = document.createElement('div');
-      content.className = 'timeline-content';
-
-      // Add appointments that start in this hour
-      const hourAppts = appts.filter(a => parseInt(a.time.split(':')[0]) === h);
-      hourAppts.forEach(appt => {
-        content.appendChild(createApptBlock(appt));
-      });
-
+      
       slot.appendChild(timeEl);
-      slot.appendChild(content);
       timeline.appendChild(slot);
     }
+
+    const eventsContainer = document.createElement('div');
+    eventsContainer.className = 'timeline-events';
+    eventsContainer.style.position = 'absolute';
+    eventsContainer.style.top = '0';
+    eventsContainer.style.left = '60px';
+    eventsContainer.style.right = '16px';
+    eventsContainer.style.bottom = '0';
+    timeline.appendChild(eventsContainer);
+
+    // Calculate layout for overlapping appointments
+    const placed = [];
+    appts.forEach(appt => {
+      const [h, m] = (appt.time || '09:00').split(':').map(Number);
+      if (h < 8 || h > 20) return;
+      const start = (h - 8) * 60 + m;
+      const duration = appt.duration || 90;
+      const end = start + duration;
+
+      const overlaps = placed.filter(p => start < p.end && end > p.start);
+      let col = 0;
+      while (overlaps.some(p => p.col === col)) col++;
+
+      placed.push({ start, end, col, appt });
+    });
+
+    placed.forEach(p => {
+      const overlaps = placed.filter(o => p.start < o.end && p.end > o.start);
+      const maxCol = overlaps.length ? Math.max(...overlaps.map(o => o.col)) : 0;
+      
+      const block = createApptBlock(p.appt);
+      block.style.position = 'absolute';
+      block.style.top = `${p.start}px`;
+      block.style.height = `${p.end - p.start}px`;
+      
+      const totalCols = maxCol + 1;
+      const width = 100 / totalCols;
+      block.style.width = `calc(${width}% - 4px)`;
+      block.style.left = `calc(${p.col * width}%)`;
+      
+      block.style.margin = '0';
+      block.style.zIndex = '10';
+      block.style.overflow = 'hidden';
+      block.style.boxSizing = 'border-box';
+
+      eventsContainer.appendChild(block);
+    });
 
     if (appts.length === 0) {
       const empty = document.createElement('div');
@@ -575,6 +617,10 @@ const Calendar = (() => {
         <div class="empty-state-text">Aucun rendez-vous ce jour</div>
         <div class="empty-state-sub">Appuyez sur + pour en ajouter un</div>
       `;
+      // Put empty state above grid
+      empty.style.position = 'relative';
+      empty.style.zIndex = '20';
+      empty.style.background = 'var(--bg-primary)';
       timeline.appendChild(empty);
     }
   }
@@ -1126,7 +1172,7 @@ const StatsPage = (() => {
             ${a.hasTips ? ` · Tips +${UI.formatCurrency(a.tipsAmount)}` : ''}
           </div>
         </div>
-        <div class="appt-list-price">${UI.formatCurrency((a.price || 0) + (a.tipsAmount || 0))}</div>
+        <div class="appt-list-price">${a.hasTips ? '✨ ' : ''}${UI.formatCurrency((a.price || 0) + (a.tipsAmount || 0))}</div>
       `;
       item.addEventListener('click', () => AppointmentModal.open(a.id));
       list.appendChild(item);
