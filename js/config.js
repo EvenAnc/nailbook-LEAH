@@ -29,19 +29,23 @@ const CONFIG = {
   },
 
   // ─── AUTHENTIFICATION ──────────────────────────
+  // Email utilisé pour la connexion Firebase Auth
   auth: {
-    email: '', // À configurer en privé
-    passwordHash: '', // Hash de sécurité
+    email: 'leavengeons@gmail.com',
+    // Le mot de passe n'est JAMAIS stocké ici — il est géré uniquement par Firebase Auth
+    passwordHash: '12bbb2c5c0885fe3f9f898ca4b3e759bffa30fdeed20162ecfc3aab727b99dfa', // fallback hors-ligne uniquement
   },
 
   // ─── FIREBASE ──────────────────────────────────
+  // Note: la clé API Firebase Web est publique par conception.
+  // La sécurité repose sur les règles Firestore (lecture/écriture interdit sans auth)
   firebase: {
-    apiKey:            '',
-    authDomain:        '',
-    projectId:         '',
-    storageBucket:     '',
-    messagingSenderId: '',
-    appId:             '',
+    apiKey:            'AIzaSyAd0k10MwdsAvSwPkJUsTnzuOeF0CgIxx4',
+    authDomain:        'compta-nails-leah.firebaseapp.com',
+    projectId:         'compta-nails-leah',
+    storageBucket:     'compta-nails-leah.firebasestorage.app',
+    messagingSenderId: '418301179197',
+    appId:             '1:418301179197:web:efee83b873fd3fe4418154',
   },
 
   // ─── COULEURS PRESTATIONS ──────────────────────
