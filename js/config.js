@@ -29,20 +29,19 @@ const CONFIG = {
   },
 
   // ─── AUTHENTIFICATION ──────────────────────────
-  // Email de connexion autorisé (à créer dans Firebase Authentication)
   auth: {
-    email: 'RETIRE',
-    passwordHash: 'RETIRE',
+    email: '', // À configurer en privé
+    passwordHash: '', // Hash de sécurité
   },
 
   // ─── FIREBASE ──────────────────────────────────
   firebase: {
-    apiKey:            'AIzaSyAd0k10MwdsAvSwPkJUsTnzuOeF0CgIxx4',
-    authDomain:        'compta-nails-leah.firebaseapp.com',
-    projectId:         'compta-nails-leah',
-    storageBucket:     'compta-nails-leah.firebasestorage.app',
-    messagingSenderId: '418301179197',
-    appId:             '1:418301179197:web:efee83b873fd3fe4418154',
+    apiKey:            '',
+    authDomain:        '',
+    projectId:         '',
+    storageBucket:     '',
+    messagingSenderId: '',
+    appId:             '',
   },
 
   // ─── COULEURS PRESTATIONS ──────────────────────
