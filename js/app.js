@@ -74,13 +74,21 @@ const Store = (() => {
   }
 
   // ── Firebase operations ──
+  let dbAppInstance = null;
   async function fbInit() {
     try {
       const m = window.__fbModules;
-      if (!m || CONFIG.firebase.apiKey === 'FIREBASE_API_KEY') {
+      if (!m || !CONFIG.firebase.apiKey) {
         return false;
       }
-      const app = m.initializeApp(CONFIG.firebase);
+      // Éviter le double init (peut arriver si showApp() est appelé deux fois)
+      let app;
+      try {
+        app = m.initializeApp(CONFIG.firebase);
+      } catch(e) {
+        app = m.initializeApp(CONFIG.firebase, 'nailbook-store');
+      }
+      dbAppInstance = app;
       db = m.getFirestore(app);
 
       // Real-time listener
@@ -224,12 +232,23 @@ const Auth = (() => {
   const ATTEMPTS_KEY = 'nailbook_attempts';
 
   let fbAuthInstance = null;
+  let fbAppInstance = null;
 
   function initFbAuth() {
+    if (fbAuthInstance) return; // Déjà initialisé, on ne ré-init pas
     const m = window.__fbModules;
-    if (m && CONFIG.firebase.apiKey !== 'FIREBASE_API_KEY') {
-      const app = m.initializeApp(CONFIG.firebase);
-      fbAuthInstance = m.getAuth(app);
+    if (!m || !CONFIG.firebase.apiKey) return;
+    try {
+      // Essayer de récupérer l'app existante, sinon en créer une
+      try {
+        fbAppInstance = m.initializeApp(CONFIG.firebase);
+      } catch(e) {
+        // L'app est peut-être déjà initialisée avec ce nom
+        fbAppInstance = m.initializeApp(CONFIG.firebase, 'nailbook-auth');
+      }
+      fbAuthInstance = m.getAuth(fbAppInstance);
+    } catch(e) {
+      console.warn('Firebase auth init failed:', e);
     }
   }
 
@@ -1597,8 +1616,8 @@ const SettingsPage = (() => {
         return;
       }
 
-      if (CONFIG.firebase.apiKey !== 'FIREBASE_API_KEY') {
-        msg.textContent = '❌ En mode Firebase, modifie ton mot de passe depuis la Console Firebase.';
+      if (CONFIG.firebase.apiKey) {
+        msg.textContent = '❌ En mode Firebase, modifie ton mot de passe depuis la Console Firebase (console.firebase.google.com).';
         msg.style.color = 'var(--danger)';
         msg.classList.remove('hidden');
         return;
