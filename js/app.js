@@ -750,10 +750,24 @@ const AppointmentModal = (() => {
       document.getElementById('tips-amount-group').classList.toggle('hidden', !e.target.checked);
     });
 
-    // Duration custom
-    document.getElementById('appt-duration').addEventListener('change', e => {
-      document.getElementById('duration-custom-group').classList.toggle('hidden', e.target.value !== 'custom');
-    });
+    // Calcul automatique de la durée à partir de l'heure de début et de fin
+    function updateDurationDisplay() {
+      const start = document.getElementById('appt-time').value;
+      const end   = document.getElementById('appt-time-end').value;
+      const el    = document.getElementById('appt-duration-text');
+      if (!start || !end) { el.textContent = '—'; return; }
+      const [sh, sm] = start.split(':').map(Number);
+      const [eh, em] = end.split(':').map(Number);
+      let diff = (eh * 60 + em) - (sh * 60 + sm);
+      if (diff <= 0) { el.textContent = '⚠️ Heure de fin invalide'; return; }
+      const h = Math.floor(diff / 60);
+      const m = diff % 60;
+      el.textContent = h > 0 ? (m > 0 ? `${h}h${String(m).padStart(2,'0')}` : `${h}h`) : `${m} min`;
+    }
+    document.getElementById('appt-time').addEventListener('change', updateDurationDisplay);
+    document.getElementById('appt-time-end').addEventListener('change', updateDurationDisplay);
+    document.getElementById('appt-time').addEventListener('input', updateDurationDisplay);
+    document.getElementById('appt-time-end').addEventListener('input', updateDurationDisplay);
 
     // Toggle événement personnel
     document.getElementById('appt-is-personal').addEventListener('change', e => {
@@ -851,7 +865,7 @@ const AppointmentModal = (() => {
     form.reset();
     document.getElementById('appt-id').value = '';
     document.getElementById('tips-amount-group').classList.add('hidden');
-    document.getElementById('duration-custom-group').classList.add('hidden');
+    document.getElementById('appt-duration-text').textContent = '—';
     document.getElementById('delete-appt-btn').style.display = 'none';
     document.querySelectorAll('.service-chip').forEach(b => b.classList.remove('active'));
     document.getElementById('appt-is-personal').checked = false;
@@ -871,17 +885,18 @@ const AppointmentModal = (() => {
       document.getElementById('appt-date').value = appt.date  || '';
       document.getElementById('appt-time').value = appt.time  || '';
 
-      // Duration
-      const dur = appt.duration || 90;
-      const durSel = document.getElementById('appt-duration');
-      const stdValues = ['30','60','90','120','150','180'];
-      if (stdValues.includes(dur.toString())) {
-        durSel.value = dur.toString();
-      } else {
-        durSel.value = 'custom';
-        document.getElementById('appt-duration-custom').value = dur;
-        document.getElementById('duration-custom-group').classList.remove('hidden');
+      // Calcul de l'heure de fin : si timeEnd stocké, on l'utilise ; sinon on calcule depuis duration (rétro-compat.)
+      if (appt.timeEnd) {
+        document.getElementById('appt-time-end').value = appt.timeEnd;
+      } else if (appt.time && appt.duration) {
+        const [sh, sm] = appt.time.split(':').map(Number);
+        const endMin = sh * 60 + sm + (appt.duration || 90);
+        const eh = Math.floor(endMin / 60) % 24;
+        const em = endMin % 60;
+        document.getElementById('appt-time-end').value = `${String(eh).padStart(2,'0')}:${String(em).padStart(2,'0')}`;
       }
+      // Déclencher la mise à jour de l'affichage de la durée
+      document.getElementById('appt-time').dispatchEvent(new Event('input'));
 
       if (appt.isPersonal) {
         document.getElementById('modal-title').textContent = "Modifier l'événement";
@@ -915,7 +930,8 @@ const AppointmentModal = (() => {
       const dateStr = prefillDate || `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       document.getElementById('appt-date').value = dateStr;
       document.getElementById('appt-time').value = '09:00';
-      document.getElementById('appt-duration').value = CONFIG.business.defaultDuration ? CONFIG.business.defaultDuration.toString() : '90';
+      document.getElementById('appt-time-end').value = '10:30'; // 1h30 par défaut
+      document.getElementById('appt-time').dispatchEvent(new Event('input')); // met à jour l'affichage durée
     }
 
     modal.classList.remove('hidden');
@@ -936,12 +952,15 @@ const AppointmentModal = (() => {
     const date = document.getElementById('appt-date').value;
     const time = document.getElementById('appt-time').value;
 
-    if (!date || !time) { UI.toast('Date et heure requises', 'error'); return; }
+    const timeEnd = document.getElementById('appt-time-end').value;
 
-    const durSel = document.getElementById('appt-duration').value;
-    const duration = durSel === 'custom'
-      ? parseInt(document.getElementById('appt-duration-custom').value) || 90
-      : parseInt(durSel);
+    if (!date || !time || !timeEnd) { UI.toast('Date, heure de début et heure de fin sont requises', 'error'); return; }
+
+    // Calcul de la durée en minutes
+    const [sh, sm] = time.split(':').map(Number);
+    const [eh, em] = timeEnd.split(':').map(Number);
+    const duration = (eh * 60 + em) - (sh * 60 + sm);
+    if (duration <= 0) { UI.toast('L\'heure de fin doit être après l\'heure de début', 'error'); return; }
 
     let appt;
 
@@ -952,7 +971,7 @@ const AppointmentModal = (() => {
         isPersonal: true,
         personalTitle: title,
         personalDesc:  document.getElementById('appt-personal-desc').value.trim(),
-        date, time, duration,
+        date, time, timeEnd, duration,
         status: 'confirmed',
       };
     } else {
@@ -976,7 +995,7 @@ const AppointmentModal = (() => {
         clientInstagram:  instagram ? '@' + instagram.replace('@', '') : '',
         serviceType:      serviceChip.dataset.value,
         price:            isNaN(price) ? 0 : price,
-        date, time, duration,
+        date, time, timeEnd, duration,
         depositPayment:   segments['deposit-payment'],
         status:           segments['appt-status'] || 'pending',
         servicePayment:   segments['service-payment'],

@@ -448,36 +448,31 @@
                 <label class="input-label">Prix (€) *</label>
                 <input type="number" id="appt-price" class="input" placeholder="45" min="0" step="0.50" inputmode="decimal" />
               </div>
+              <!-- Durée calculée automatiquement, affichée en lecture seule -->
               <div class="input-group">
-                <label class="input-label">Durée</label>
-                <select id="appt-duration" class="input">
-                  <option value="30">30 min</option>
-                  <option value="60">1h</option>
-                  <option value="90" selected>1h30</option>
-                  <option value="120">2h</option>
-                  <option value="150">2h30</option>
-                  <option value="180">3h</option>
-                  <option value="custom">Autre…</option>
-                </select>
+                <label class="input-label">Durée (calculée)</label>
+                <div id="appt-duration-display" class="input" style="background:var(--bg-secondary);color:var(--text-secondary);cursor:default;display:flex;align-items:center;gap:6px">
+                  <span>&#x23F1;</span> <span id="appt-duration-text">—</span>
+                </div>
               </div>
-            </div>
-            <div class="input-group hidden" id="duration-custom-group">
-              <label class="input-label">Durée personnalisée (min)</label>
-              <input type="number" id="appt-duration-custom" class="input" placeholder="ex: 45" min="15" max="480" />
             </div>
           </div>
 
           <!-- DATE & HEURE (toujours visible) -->
           <div class="form-section">
             <div class="form-section-title">🕐 Date & Heure</div>
+            <div class="input-group">
+              <label class="input-label">Date *</label>
+              <input type="date" id="appt-date" class="input" />
+            </div>
             <div class="form-row-two">
               <div class="input-group">
-                <label class="input-label">Date *</label>
-                <input type="date" id="appt-date" class="input" />
+                <label class="input-label">Heure de début *</label>
+                <input type="time" id="appt-time" class="input" />
               </div>
               <div class="input-group">
-                <label class="input-label">Heure *</label>
-                <input type="time" id="appt-time" class="input" />
+                <label class="input-label">Heure de fin *</label>
+                <input type="time" id="appt-time-end" class="input" />
               </div>
             </div>
           </div>
