@@ -375,8 +375,35 @@
         <form id="appointment-form" autocomplete="off">
           <input type="hidden" id="appt-id" />
 
-          <!-- CLIENT INFO -->
-          <div class="form-section">
+          <!-- TOGGLE PERSONNEL -->
+          <div class="form-section" id="personal-toggle-section" style="padding-bottom: 12px;">
+            <div class="toggle-row">
+              <div>
+                <span class="toggle-label" style="font-size:15px;font-weight:600;">&#128100; Événement personnel</span>
+                <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">Masque tous les champs pro (prix, paiement...)</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="appt-is-personal" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- CHAMPS PERSONNEL (masqués par défaut) -->
+          <div class="form-section hidden" id="personal-fields-section">
+            <div class="form-section-title">&#128100; Détails de l'événement</div>
+            <div class="input-group">
+              <label class="input-label">Titre *</label>
+              <input type="text" id="appt-personal-title" class="input" placeholder="Ex: Médecin, Livraison..." autocomplete="off" />
+            </div>
+            <div class="input-group">
+              <label class="input-label">Description (optionnel)</label>
+              <textarea id="appt-personal-desc" class="input" rows="2" placeholder="Notes libres..." style="resize:vertical;min-height:60px"></textarea>
+            </div>
+          </div>
+
+          <!-- CLIENT INFO (section pro) -->
+          <div class="form-section" id="pro-client-section">
             <div class="form-section-title">👤 Informations cliente</div>
             <div class="form-row-two">
               <div class="input-group">
@@ -399,8 +426,8 @@
             </div>
           </div>
 
-          <!-- PRESTATION -->
-          <div class="form-section">
+          <!-- PRESTATION (section pro) -->
+          <div class="form-section" id="pro-service-section">
             <div class="form-section-title">💅 Prestation</div>
             <div class="input-group">
               <label class="input-label">Type de prestation *</label>
@@ -408,9 +435,12 @@
                 <button type="button" class="service-chip" data-value="pose_americaine">🇺🇸 Pose Américaine</button>
                 <button type="button" class="service-chip" data-value="gel">💎 Gel</button>
                 <button type="button" class="service-chip" data-value="depose">🗑️ Dépose</button>
-                <button type="button" class="service-chip" data-value="gainage">🛡️ Gainage</button>
+                <button type="button" class="service-chip" data-value="gainage">🛡️ Gaînage</button>
                 <button type="button" class="service-chip" data-value="renforcement">💪 Renforcement</button>
                 <button type="button" class="service-chip" data-value="semi">🌸 Semi</button>
+                <button type="button" class="service-chip" data-value="depose_pose_americaine">✨ Dépose + Pose Am.</button>
+                <button type="button" class="service-chip" data-value="remplissage">💅 Remplissage</button>
+                <button type="button" class="service-chip" data-value="depose_exterieur">✂️ Dépose Extérieur</button>
               </div>
             </div>
             <div class="form-row-two">
@@ -437,7 +467,7 @@
             </div>
           </div>
 
-          <!-- DATE & HEURE -->
+          <!-- DATE & HEURE (toujours visible) -->
           <div class="form-section">
             <div class="form-section-title">🕐 Date & Heure</div>
             <div class="form-row-two">
@@ -452,8 +482,8 @@
             </div>
           </div>
 
-          <!-- ACOMPTE -->
-          <div class="form-section">
+          <!-- ACOMPTE (section pro) -->
+          <div class="form-section" id="pro-deposit-section">
             <div class="form-section-title">💵 Acompte (15 €)</div>
             <div class="input-group">
               <label class="input-label">Moyen de paiement de l'acompte</label>
@@ -465,8 +495,8 @@
             </div>
           </div>
 
-          <!-- CONFIRMATION -->
-          <div class="form-section">
+          <!-- CONFIRMATION (section pro) -->
+          <div class="form-section" id="pro-status-section">
             <div class="form-section-title">✅ Confirmation</div>
             <div class="input-group">
               <label class="input-label">Statut du rendez-vous</label>
@@ -478,8 +508,8 @@
             </div>
           </div>
 
-          <!-- PAIEMENT PRESTATION -->
-          <div class="form-section">
+          <!-- PAIEMENT PRESTATION (section pro) -->
+          <div class="form-section" id="pro-payment-section">
             <div class="form-section-title">💳 Paiement prestation</div>
             <div class="input-group">
               <label class="input-label">Moyen de paiement</label>
@@ -491,8 +521,8 @@
             </div>
           </div>
 
-          <!-- TIPS -->
-          <div class="form-section">
+          <!-- TIPS (section pro) -->
+          <div class="form-section" id="pro-tips-section">
             <div class="form-section-title">✨ Tips</div>
             <div class="toggle-row">
               <span class="toggle-label">Tips reçus</span>

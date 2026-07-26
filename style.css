@@ -324,12 +324,23 @@ ul { list-style: none; }
 .appt-block-info { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 
 /* Service colours */
-.service-pose_americaine { background: #FFE8E0; border-color: #E8764A; }
-.service-gel              { background: #EDE0FF; border-color: #8B5CF6; }
-.service-depose           { background: #F0F0F0; border-color: #9CA3AF; }
-.service-gainage          { background: #FFF8E0; border-color: #D4A017; }
-.service-renforcement     { background: #E0FFF0; border-color: #10B981; }
-.service-semi             { background: #E0F4FF; border-color: #3B82F6; }
+.service-pose_americaine        { background: #FFE8E0; border-color: #E8764A; }
+.service-gel                    { background: #EDE0FF; border-color: #8B5CF6; }
+.service-depose                 { background: #F0F0F0; border-color: #9CA3AF; }
+.service-gainage                { background: #FFF8E0; border-color: #D4A017; }
+.service-renforcement           { background: #E0FFF0; border-color: #10B981; }
+.service-semi                   { background: #E0F4FF; border-color: #3B82F6; }
+.service-depose_pose_americaine { background: #FFD5C5; border-color: #C0522A; }
+.service-remplissage            { background: #D6F4F4; border-color: #0E9494; }
+.service-depose_exterieur       { background: #E5E7EB; border-color: #6B7280; }
+
+/* Événement personnel */
+.appt-block-personal {
+  border-left-style: dashed !important;
+  border-left-width: 4px !important;
+  font-style: italic;
+}
+.appt-block-personal .appt-block-name { color: #5B21B6; }
 
 /* ══════════════════════════════════════════════════
    CLIENTS

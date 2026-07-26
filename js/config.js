@@ -50,12 +50,15 @@ const CONFIG = {
 
   // ─── COULEURS PRESTATIONS ──────────────────────
   serviceColors: {
-    pose_americaine: { color: '#E8764A', bg: '#FFE8E0', emoji: '🇺🇸', label: 'Pose Américaine' },
-    gel:             { color: '#8B5CF6', bg: '#EDE0FF', emoji: '💎', label: 'Gel' },
-    depose:          { color: '#9CA3AF', bg: '#F0F0F0', emoji: '🗑️', label: 'Dépose' },
-    gainage:         { color: '#D4A017', bg: '#FFF8E0', emoji: '🛡️', label: 'Gainage' },
-    renforcement:    { color: '#10B981', bg: '#E0FFF0', emoji: '💪', label: 'Renforcement' },
-    semi:            { color: '#3B82F6', bg: '#E0F4FF', emoji: '🌸', label: 'Semi' },
+    pose_americaine:        { color: '#E8764A', bg: '#FFE8E0', emoji: '🇺🇸', label: 'Pose Américaine' },
+    gel:                    { color: '#8B5CF6', bg: '#EDE0FF', emoji: '💎', label: 'Gel' },
+    depose:                 { color: '#9CA3AF', bg: '#F0F0F0', emoji: '🗑️', label: 'Dépose' },
+    gainage:                { color: '#D4A017', bg: '#FFF8E0', emoji: '🛡️', label: 'Gaînage' },
+    renforcement:           { color: '#10B981', bg: '#E0FFF0', emoji: '💪', label: 'Renforcement' },
+    semi:                   { color: '#3B82F6', bg: '#E0F4FF', emoji: '🌸', label: 'Semi' },
+    depose_pose_americaine: { color: '#C0522A', bg: '#FFD5C5', emoji: '✨', label: 'Dépose + Pose Américaine' },
+    remplissage:            { color: '#0E9494', bg: '#D6F4F4', emoji: '💅', label: 'Remplissage' },
+    depose_exterieur:       { color: '#6B7280', bg: '#E5E7EB', emoji: '✂️', label: 'Dépose Extérieur' },
   },
 
   // ─── STATUTS ───────────────────────────────────

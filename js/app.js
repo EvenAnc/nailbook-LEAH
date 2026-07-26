@@ -206,6 +206,8 @@ const Store = (() => {
     getClients() {
       const map = new Map();
       appointments.forEach(a => {
+        // Les événements personnels n'ont pas de cliente
+        if (a.isPersonal) return;
         const key = `${a.clientFirstName}|${a.clientLastName}|${a.clientInstagram || ''}`;
         if (!map.has(key)) {
           map.set(key, {
@@ -533,8 +535,12 @@ const Calendar = (() => {
       dayAppts.slice(0, 6).forEach(a => {
         const dot = document.createElement('div');
         dot.className = 'cal-dot';
-        const svc = CONFIG.serviceColors[a.serviceType];
-        dot.style.backgroundColor = svc ? svc.color : '#B76E79';
+        if (a.isPersonal) {
+          dot.style.backgroundColor = '#7C3AED'; // violet pour perso
+        } else {
+          const svc = CONFIG.serviceColors[a.serviceType];
+          dot.style.backgroundColor = svc ? svc.color : '#B76E79';
+        }
         dotsEl.appendChild(dot);
       });
       cell.appendChild(dotsEl);
@@ -648,21 +654,37 @@ const Calendar = (() => {
   }
 
   function createApptBlock(appt) {
-    const svc = CONFIG.serviceColors[appt.serviceType] || { color: '#B76E79', bg: '#F4D4D8', emoji: '💅', label: appt.serviceType };
     const block = document.createElement('div');
-    block.className = `appt-block service-${appt.serviceType}${appt.status === 'cancelled' ? ' cancelled' : ''}`;
-    block.style.borderColor = svc.color;
-    block.style.background = svc.bg;
 
-    const status = CONFIG.statusLabels[appt.status] || CONFIG.statusLabels.pending;
-    block.innerHTML = `
-      <div class="appt-block-name">${appt.clientFirstName} ${appt.clientLastName}</div>
-      <div class="appt-block-info">
-        ${UI.formatTime(appt.time)} · ${UI.formatDuration(appt.duration || 90)} · ${svc.emoji} ${svc.label}
-        · <span style="color:${status.color};font-weight:600">${status.label}</span>
-        · ${UI.formatCurrency(appt.price)}
-      </div>
-    `;
+    if (appt.isPersonal) {
+      // Style événement personnel
+      block.className = 'appt-block appt-block-personal';
+      block.style.borderColor = '#7C3AED';
+      block.style.background = '#EDE9FE';
+      block.innerHTML = `
+        <div class="appt-block-name">&#128100; ${appt.personalTitle || 'Perso'}</div>
+        <div class="appt-block-info">
+          ${UI.formatTime(appt.time)} · ${UI.formatDuration(appt.duration || 60)}
+          ${appt.personalDesc ? ` · <em>${appt.personalDesc}</em>` : ''}
+        </div>
+      `;
+    } else {
+      const svc = CONFIG.serviceColors[appt.serviceType] || { color: '#B76E79', bg: '#F4D4D8', emoji: '\ud83d\udc85', label: appt.serviceType };
+      block.className = `appt-block service-${appt.serviceType}${appt.status === 'cancelled' ? ' cancelled' : ''}`;
+      block.style.borderColor = svc.color;
+      block.style.background = svc.bg;
+
+      const status = CONFIG.statusLabels[appt.status] || CONFIG.statusLabels.pending;
+      block.innerHTML = `
+        <div class="appt-block-name">${appt.clientFirstName} ${appt.clientLastName}</div>
+        <div class="appt-block-info">
+          ${UI.formatTime(appt.time)} · ${UI.formatDuration(appt.duration || 90)} · ${svc.emoji} ${svc.label}
+          · <span style="color:${status.color};font-weight:600">${status.label}</span>
+          · ${UI.formatCurrency(appt.price)}
+        </div>
+      `;
+    }
+
     block.addEventListener('click', () => AppointmentModal.open(appt.id));
     return block;
   }
@@ -731,6 +753,11 @@ const AppointmentModal = (() => {
     // Duration custom
     document.getElementById('appt-duration').addEventListener('change', e => {
       document.getElementById('duration-custom-group').classList.toggle('hidden', e.target.value !== 'custom');
+    });
+
+    // Toggle événement personnel
+    document.getElementById('appt-is-personal').addEventListener('change', e => {
+      togglePersonalMode(e.target.checked);
     });
 
     // Autocomplete
@@ -806,6 +833,16 @@ const AppointmentModal = (() => {
     segments[ctrlId] = value;
   }
 
+  function togglePersonalMode(isPersonal) {
+    const proSections = ['pro-client-section', 'pro-service-section', 'pro-deposit-section', 'pro-status-section', 'pro-payment-section', 'pro-tips-section'];
+    proSections.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('hidden', isPersonal);
+    });
+    const personalFields = document.getElementById('personal-fields-section');
+    if (personalFields) personalFields.classList.toggle('hidden', !isPersonal);
+  }
+
   function open(apptId = null, prefillDate = null) {
     currentId = apptId;
     const modal = document.getElementById('appointment-modal');
@@ -817,6 +854,8 @@ const AppointmentModal = (() => {
     document.getElementById('duration-custom-group').classList.add('hidden');
     document.getElementById('delete-appt-btn').style.display = 'none';
     document.querySelectorAll('.service-chip').forEach(b => b.classList.remove('active'));
+    document.getElementById('appt-is-personal').checked = false;
+    togglePersonalMode(false);
 
     // Reset segments
     setSegment('deposit-payment', null);
@@ -824,24 +863,13 @@ const AppointmentModal = (() => {
     setSegment('service-payment', null);
 
     if (apptId) {
-      // Edit mode
       const appt = Store.getAll().find(a => a.id === apptId);
       if (!appt) return;
 
-      document.getElementById('modal-title').textContent = 'Modifier le rendez-vous';
       document.getElementById('delete-appt-btn').style.display = 'flex';
       document.getElementById('save-appt-btn').textContent = 'Enregistrer';
-
-      document.getElementById('appt-id').value           = appt.id;
-      document.getElementById('appt-firstname').value    = appt.clientFirstName || '';
-      document.getElementById('appt-lastname').value     = appt.clientLastName  || '';
-      document.getElementById('appt-instagram').value    = (appt.clientInstagram || '').replace('@', '');
-      document.getElementById('appt-price').value        = appt.price || '';
-      document.getElementById('appt-date').value         = appt.date  || '';
-      document.getElementById('appt-time').value         = appt.time  || '';
-      document.getElementById('appt-has-tips').checked   = !!appt.hasTips;
-      document.getElementById('appt-tips-amount').value  = appt.tipsAmount || '';
-      if (appt.hasTips) document.getElementById('tips-amount-group').classList.remove('hidden');
+      document.getElementById('appt-date').value = appt.date  || '';
+      document.getElementById('appt-time').value = appt.time  || '';
 
       // Duration
       const dur = appt.duration || 90;
@@ -855,21 +883,34 @@ const AppointmentModal = (() => {
         document.getElementById('duration-custom-group').classList.remove('hidden');
       }
 
-      // Service chip
-      const chip = document.querySelector(`.service-chip[data-value="${appt.serviceType}"]`);
-      if (chip) chip.classList.add('active');
+      if (appt.isPersonal) {
+        document.getElementById('modal-title').textContent = "Modifier l'événement";
+        document.getElementById('appt-is-personal').checked = true;
+        togglePersonalMode(true);
+        document.getElementById('appt-personal-title').value = appt.personalTitle || '';
+        document.getElementById('appt-personal-desc').value  = appt.personalDesc  || '';
+      } else {
+        document.getElementById('modal-title').textContent = 'Modifier le rendez-vous';
+        document.getElementById('appt-firstname').value    = appt.clientFirstName || '';
+        document.getElementById('appt-lastname').value     = appt.clientLastName  || '';
+        document.getElementById('appt-instagram').value    = (appt.clientInstagram || '').replace('@', '');
+        document.getElementById('appt-price').value        = appt.price || '';
+        document.getElementById('appt-has-tips').checked   = !!appt.hasTips;
+        document.getElementById('appt-tips-amount').value  = appt.tipsAmount || '';
+        if (appt.hasTips) document.getElementById('tips-amount-group').classList.remove('hidden');
 
-      // Segments
-      setSegment('deposit-payment', appt.depositPayment || null);
-      setSegment('appt-status',     appt.status || 'pending');
-      setSegment('service-payment', appt.servicePayment || null);
+        const chip = document.querySelector(`.service-chip[data-value="${appt.serviceType}"]`);
+        if (chip) chip.classList.add('active');
+
+        setSegment('deposit-payment', appt.depositPayment || null);
+        setSegment('appt-status',     appt.status || 'pending');
+        setSegment('service-payment', appt.servicePayment || null);
+      }
 
     } else {
-      // New mode
       document.getElementById('modal-title').textContent = 'Nouveau rendez-vous';
       document.getElementById('save-appt-btn').textContent = 'Enregistrer';
 
-      // Default date
       const d = new Date();
       const dateStr = prefillDate || `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       document.getElementById('appt-date').value = dateStr;
@@ -878,7 +919,11 @@ const AppointmentModal = (() => {
     }
 
     modal.classList.remove('hidden');
-    setTimeout(() => document.getElementById('appt-firstname').focus(), 300);
+    setTimeout(() => {
+      const isPersonal = document.getElementById('appt-is-personal').checked;
+      if (isPersonal) document.getElementById('appt-personal-title').focus();
+      else document.getElementById('appt-firstname').focus();
+    }, 300);
   }
 
   function close() {
@@ -887,53 +932,67 @@ const AppointmentModal = (() => {
   }
 
   async function save() {
-    const firstName = document.getElementById('appt-firstname').value.trim();
-    const lastName  = document.getElementById('appt-lastname').value.trim();
-    const date      = document.getElementById('appt-date').value;
-    const time      = document.getElementById('appt-time').value;
-    const price     = parseFloat(document.getElementById('appt-price').value);
+    const isPersonal = document.getElementById('appt-is-personal').checked;
+    const date = document.getElementById('appt-date').value;
+    const time = document.getElementById('appt-time').value;
 
-    // Validation
-    if (!firstName || !lastName) { UI.toast('Prénom et nom requis', 'error'); return; }
-    if (!date || !time)          { UI.toast('Date et heure requises', 'error'); return; }
+    if (!date || !time) { UI.toast('Date et heure requises', 'error'); return; }
 
-    const serviceChip = document.querySelector('.service-chip.active');
-    if (!serviceChip) { UI.toast('Sélectionne un type de prestation', 'error'); return; }
-
-    // Duration
     const durSel = document.getElementById('appt-duration').value;
     const duration = durSel === 'custom'
       ? parseInt(document.getElementById('appt-duration-custom').value) || 90
       : parseInt(durSel);
 
-    const hasTips    = document.getElementById('appt-has-tips').checked;
-    const tipsAmount = hasTips ? parseFloat(document.getElementById('appt-tips-amount').value) || 0 : 0;
-    const instagram  = document.getElementById('appt-instagram').value.trim();
+    let appt;
 
-    const appt = {
-      clientFirstName:  firstName,
-      clientLastName:   lastName,
-      clientInstagram:  instagram ? '@' + instagram.replace('@', '') : '',
-      serviceType:      serviceChip.dataset.value,
-      price:            isNaN(price) ? 0 : price,
-      date,
-      time,
-      duration,
-      depositPayment:   segments['deposit-payment'],
-      status:           segments['appt-status'] || 'pending',
-      servicePayment:   segments['service-payment'],
-      hasTips,
-      tipsAmount,
-    };
+    if (isPersonal) {
+      const title = document.getElementById('appt-personal-title').value.trim();
+      if (!title) { UI.toast("Un titre est requis pour l'événement", 'error'); return; }
+      appt = {
+        isPersonal: true,
+        personalTitle: title,
+        personalDesc:  document.getElementById('appt-personal-desc').value.trim(),
+        date, time, duration,
+        status: 'confirmed',
+      };
+    } else {
+      const firstName = document.getElementById('appt-firstname').value.trim();
+      const lastName  = document.getElementById('appt-lastname').value.trim();
+      const price     = parseFloat(document.getElementById('appt-price').value);
+
+      if (!firstName || !lastName) { UI.toast('Prénom et nom requis', 'error'); return; }
+
+      const serviceChip = document.querySelector('.service-chip.active');
+      if (!serviceChip) { UI.toast('Sélectionne un type de prestation', 'error'); return; }
+
+      const hasTips    = document.getElementById('appt-has-tips').checked;
+      const tipsAmount = hasTips ? parseFloat(document.getElementById('appt-tips-amount').value) || 0 : 0;
+      const instagram  = document.getElementById('appt-instagram').value.trim();
+
+      appt = {
+        isPersonal:       false,
+        clientFirstName:  firstName,
+        clientLastName:   lastName,
+        clientInstagram:  instagram ? '@' + instagram.replace('@', '') : '',
+        serviceType:      serviceChip.dataset.value,
+        price:            isNaN(price) ? 0 : price,
+        date, time, duration,
+        depositPayment:   segments['deposit-payment'],
+        status:           segments['appt-status'] || 'pending',
+        servicePayment:   segments['service-payment'],
+        hasTips,
+        tipsAmount,
+      };
+    }
 
     try {
       document.getElementById('save-appt-btn').textContent = '…';
       if (currentId) {
         await Store.update(currentId, appt);
-        UI.toast('Rendez-vous modifié ✨', 'success');
+        UI.toast(isPersonal ? 'Événement modifié 📌' : 'Rendez-vous modifié ✨', 'success');
       } else {
         await Store.add(appt);
-        UI.toast('Rendez-vous ajouté 💅', 'success');
+        UI.toast(isPersonal ? 'Événement ajouté 📌' : 'Rendez-vous ajouté 💅', 'success');
       }
       close();
     } catch (e) {
@@ -1113,7 +1172,8 @@ const StatsPage = (() => {
     document.getElementById('invoice-month-label').textContent = label;
 
     const appts  = Store.getByMonth(year, month);
-    const done   = appts.filter(a => a.status !== 'cancelled');
+    // Les événements personnels n'entrent pas dans les stats financières
+    const done   = appts.filter(a => a.status !== 'cancelled' && !a.isPersonal);
     let ca = 0;
     let tips = 0;
     let weroAmt = 0;
@@ -1146,7 +1206,7 @@ const StatsPage = (() => {
     // Trend (vs prev month)
     const prevM = month === 0 ? 11 : month - 1;
     const prevY = month === 0 ? year - 1 : year;
-    const prevAppts = Store.getByMonth(prevY, prevM).filter(a => a.status !== 'cancelled');
+    const prevAppts = Store.getByMonth(prevY, prevM).filter(a => a.status !== 'cancelled' && !a.isPersonal);
     const prevCa    = prevAppts.reduce((s, a) => s + (a.price || 0), 0);
 
     if (prevCa > 0) {
