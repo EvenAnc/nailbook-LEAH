@@ -750,24 +750,56 @@ const AppointmentModal = (() => {
       document.getElementById('tips-amount-group').classList.toggle('hidden', !e.target.checked);
     });
 
-    // Calcul automatique de la durée à partir de l'heure de début et de fin
+    // Durée mémorisée (en minutes) pour le décalage automatique en mode pro
+    let lastKnownDuration = 90; // 1h30 par défaut
+
+    function toMinutes(timeStr) {
+      if (!timeStr) return null;
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    function minutesToTime(mins) {
+      const h = Math.floor(mins / 60) % 24;
+      const m = mins % 60;
+      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    }
+
     function updateDurationDisplay() {
       const start = document.getElementById('appt-time').value;
       const end   = document.getElementById('appt-time-end').value;
       const el    = document.getElementById('appt-duration-text');
       if (!start || !end) { el.textContent = '—'; return; }
-      const [sh, sm] = start.split(':').map(Number);
-      const [eh, em] = end.split(':').map(Number);
-      let diff = (eh * 60 + em) - (sh * 60 + sm);
+      const diff = toMinutes(end) - toMinutes(start);
       if (diff <= 0) { el.textContent = '⚠️ Heure de fin invalide'; return; }
+      lastKnownDuration = diff; // mémorise la durée courante
       const h = Math.floor(diff / 60);
       const m = diff % 60;
       el.textContent = h > 0 ? (m > 0 ? `${h}h${String(m).padStart(2,'0')}` : `${h}h`) : `${m} min`;
     }
-    document.getElementById('appt-time').addEventListener('change', updateDurationDisplay);
-    document.getElementById('appt-time-end').addEventListener('change', updateDurationDisplay);
-    document.getElementById('appt-time').addEventListener('input', updateDurationDisplay);
+
+    // Heure de DÉBUT modifiée
+    // → Mode pro : décale la fin pour conserver la durée
+    // → Mode perso : les deux heures sont indépendantes, on recalcule juste l'affichage
+    document.getElementById('appt-time').addEventListener('input', () => {
+      const isPersonal = document.getElementById('appt-is-personal').checked;
+      if (!isPersonal) {
+        const start = document.getElementById('appt-time').value;
+        if (start && lastKnownDuration > 0) {
+          document.getElementById('appt-time-end').value = minutesToTime(toMinutes(start) + lastKnownDuration);
+        }
+      }
+      updateDurationDisplay();
+    });
+
+    // Heure de FIN modifiée → recalcule et mémorise la nouvelle durée (dans les deux modes)
     document.getElementById('appt-time-end').addEventListener('input', updateDurationDisplay);
+    // Compatibilité change (certains pickers mobiles n'émettent que change)
+    document.getElementById('appt-time').addEventListener('change', () => {
+      document.getElementById('appt-time').dispatchEvent(new Event('input'));
+    });
+    document.getElementById('appt-time-end').addEventListener('change', updateDurationDisplay);
+
 
     // Toggle événement personnel
     document.getElementById('appt-is-personal').addEventListener('change', e => {
