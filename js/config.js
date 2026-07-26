@@ -50,7 +50,7 @@ const CONFIG = {
 
   // ─── COULEURS PRESTATIONS ──────────────────────
   serviceColors: {
-    pose_americaine:        { color: '#E8764A', bg: '#FFE8E0', emoji: '🇺🇸', label: 'Pose Américaine' },
+    pose_americaine:        { color: '#E8764A', bg: '#FFE8E0', emoji: '🤍', label: 'Pose Américaine' },
     gel:                    { color: '#8B5CF6', bg: '#EDE0FF', emoji: '💎', label: 'Gel' },
     depose:                 { color: '#9CA3AF', bg: '#F0F0F0', emoji: '🗑️', label: 'Dépose' },
     gainage:                { color: '#D4A017', bg: '#FFF8E0', emoji: '🛡️', label: 'Gaînage' },
