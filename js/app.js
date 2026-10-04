@@ -1206,6 +1206,29 @@ const ClientsPage = (() => {
 })();
 
 // ══════════════════════════════════════════════════
+// PAIEMENTS — Répartition réelle par moyen de paiement
+// ══════════════════════════════════════════════════
+// wero / especes = montants réellement renseignés ; other = non réglé ou non renseigné
+function splitPayments(appts, withTips) {
+  const res = { ca: 0, tips: 0, wero: 0, especes: 0, other: 0 };
+  appts.forEach(a => {
+    const price   = a.price || 0;
+    const tipsAmt = a.tipsAmount || 0;
+    res.ca   += price;
+    res.tips += tipsAmt;
+
+    const hasDeposit = a.depositPayment === 'wero' || a.depositPayment === 'especes';
+    const depAmt  = hasDeposit ? Math.min(price, CONFIG.business.defaultDeposit || 15) : 0;
+    const restAmt = price - depAmt + (withTips ? tipsAmt : 0);
+
+    if (hasDeposit) res[a.depositPayment] += depAmt;
+    if (a.servicePayment === 'wero' || a.servicePayment === 'especes') res[a.servicePayment] += restAmt;
+    else res.other += restAmt;
+  });
+  return res;
+}
+
+// ══════════════════════════════════════════════════
 // STATS PAGE
 // ══════════════════════════════════════════════════
 const StatsPage = (() => {
@@ -1247,32 +1270,20 @@ const StatsPage = (() => {
     const appts  = Store.getByMonth(year, month);
     // Les événements personnels n'entrent pas dans les stats financières
     const done   = appts.filter(a => a.status !== 'cancelled' && !a.isPersonal);
-    let ca = 0;
-    let tips = 0;
-    let weroAmt = 0;
+    const pay  = splitPayments(done, true);
+    const ca   = pay.ca;
+    const tips = pay.tips;
 
-    done.forEach(a => {
-      const price = a.price || 0;
-      ca += price;
-      const tipsAmt = a.tipsAmount || 0;
-      tips += tipsAmt;
-
-      const hasDeposit = a.depositPayment === 'wero' || a.depositPayment === 'especes';
-      const depAmt = hasDeposit ? (CONFIG.business.defaultDeposit || 15) : 0;
-      const restAmt = Math.max(0, price - depAmt);
-
-      if (a.depositPayment === 'wero') weroAmt += depAmt;
-      if (a.servicePayment === 'wero') weroAmt += (restAmt + tipsAmt);
-    });
-
-    const totalAmt = (ca + tips) || 1;
-    const weroPct = Math.round((weroAmt / totalAmt) * 100);
+    const totalAmt  = ca + tips;
+    const weroPct   = totalAmt ? Math.round((pay.wero / totalAmt) * 100) : 0;
+    const especePct = totalAmt ? Math.round((pay.especes / totalAmt) * 100) : 0;
+    const otherPct  = totalAmt ? Math.max(0, 100 - weroPct - especePct) : 0;
 
     document.getElementById('stat-ca').textContent   = UI.formatCurrency(ca);
     document.getElementById('stat-rdv').textContent  = done.length;
     document.getElementById('stat-tips').textContent = UI.formatCurrency(tips);
-    const especePct = 100 - weroPct;
     document.getElementById('stat-wero').textContent = `${especePct}% / ${weroPct}%`;
+    document.getElementById('stat-pay-other').textContent = otherPct > 0 ? ` · ${otherPct}% non renseigné` : '';
     document.getElementById('stats-bar-especes').style.width = `${especePct}%`;
     document.getElementById('stats-bar-wero').style.width = `${weroPct}%`;
 
@@ -1299,7 +1310,7 @@ const StatsPage = (() => {
 
   function renderList() {
     const list  = document.getElementById('stats-appointments-list');
-    let appts   = Store.getByMonth(year, month);
+    let appts   = Store.getByMonth(year, month).filter(a => !a.isPersonal);
 
     if (filter === 'confirmed') appts = appts.filter(a => a.status !== 'cancelled');
     if (filter === 'cancelled') appts = appts.filter(a => a.status === 'cancelled');
@@ -1307,12 +1318,16 @@ const StatsPage = (() => {
     if (filter === 'especes' || filter === 'wero') {
       appts = appts.filter(a => a.status !== 'cancelled' && a.servicePayment === filter);
     }
+    if (filter === 'unpaid') {
+      appts = appts.filter(a => a.status !== 'cancelled' && a.servicePayment !== 'wero' && a.servicePayment !== 'especes');
+    }
 
     appts.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
 
     list.innerHTML = '';
     if (appts.length === 0) {
-      list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">Aucune prestation ce mois</div></div>`;
+      const emptyText = filter === 'all' ? 'Aucune prestation ce mois' : 'Aucune prestation pour ce filtre';
+      list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">${emptyText}</div></div>`;
       return;
     }
 
@@ -1376,24 +1391,13 @@ const Invoice = (() => {
     const counter     = Store.incrementInvoiceCounter();
     const invoiceNum  = `${year}-${String(month + 1).padStart(2, '0')}-${String(counter).padStart(3, '0')}`;
 
-    let ca = 0;
-    let wero = 0;
-
-    done.forEach(a => {
-      const price = a.price || 0;
-      ca += price;
-
-      const hasDeposit = a.depositPayment === 'wero' || a.depositPayment === 'especes';
-      const depAmt = hasDeposit ? (CONFIG.business.defaultDeposit || 15) : 0;
-      const restAmt = Math.max(0, price - depAmt);
-
-      if (a.depositPayment === 'wero') wero += depAmt;
-      // On n'inclut que le montant de la prestation dans le CA du PDF
-      if (a.servicePayment === 'wero') wero += restAmt;
-    });
-    
+    // On n'inclut que le montant des prestations (hors tips) dans le PDF
+    const pay   = splitPayments(done, false);
+    const ca    = pay.ca;
+    const wero  = pay.wero;
+    const cash  = pay.especes;
+    const other = pay.other;
     const total = ca;
-    const cash  = total - wero;
 
     // Table rows
     const tableBody = [
@@ -1512,6 +1516,10 @@ const Invoice = (() => {
                     { text: 'Paiements Espèces', style: 'summaryLabel' },
                     { text: cash.toFixed(2) + ' €', style: 'summaryLabel' },
                   ],
+                  ...(other > 0 ? [[
+                    { text: 'Non réglé / non renseigné', style: 'summaryLabel' },
+                    { text: other.toFixed(2) + ' €', style: 'summaryLabel' },
+                  ]] : []),
                   [
                     { text: 'Nombre de prestations', style: 'summaryLabel' },
                     { text: done.length.toString(), style: 'summaryLabel' },
