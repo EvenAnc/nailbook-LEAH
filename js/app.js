@@ -1532,11 +1532,7 @@ const Invoice = (() => {
         { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 523, y2: 0, lineWidth: 2, lineColor: COLORS.primary }], margin: [0, 0, 0, 20] },
 
         // ── TITRE TABLEAU ───────────────────────────
-        { text: `Détail des prestations — ${monthName}`, style: 'sectionTitle', margin: [0, 0, 0, isExtract ? 4 : 12] },
-        ...(isExtract ? [{
-          text: `Extrait partiel : ${hiddenCount} prestation${hiddenCount > 1 ? 's' : ''} du mois non incluse${hiddenCount > 1 ? 's' : ''}.`,
-          fontSize: 9, italics: true, color: '#666', margin: [0, 0, 0, 12],
-        }] : []),
+        { text: `Détail des prestations — ${monthName}`, style: 'sectionTitle', margin: [0, 0, 0, 12] },
 
         // ── TABLEAU DES PRESTATIONS ──────────────────
         {
@@ -1618,9 +1614,10 @@ const Invoice = (() => {
             { text: CONFIG.business.vatNote, fontSize: 8.5, color: '#666', margin: [0, 0, 0, 3] },
             { text: `Pénalités de retard : ${CONFIG.defaults.lateRate}.`, fontSize: 8.5, color: '#666', margin: [0, 0, 0, 3] },
             { text: 'Indemnité forfaitaire de recouvrement pour les professionnels : 40 €.', fontSize: 8.5, color: '#666', margin: [0, 0, 0, 3] },
-            { text: isExtract
-                ? 'Extrait partiel du livre des recettes : ce document ne tient pas lieu de livre des recettes.'
-                : 'Ce document tient lieu de livre des recettes conformément à l\'article 50-0 du CGI.', fontSize: 8.5, color: '#666', italics: true },
+            // La mention « tient lieu de livre des recettes » ne vaut que pour le livre complet
+            ...(isExtract ? [] : [
+              { text: 'Ce document tient lieu de livre des recettes conformément à l\'article 50-0 du CGI.', fontSize: 8.5, color: '#666', italics: true },
+            ]),
           ],
         },
       ],
