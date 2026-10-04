@@ -440,6 +440,7 @@ ul { list-style: none; }
 .stat-side-value { font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; color: var(--accent); }
 .stat-side-note { font-size: 11px; font-weight: 600; color: var(--danger); margin-top: 2px; min-height: 14px; }
 .stat-card-pay { position: relative; }
+@media (max-width: 1200px) { .stat-card-pay { padding-top: 42px; } }
 .stat-mode-toggle {
   position: absolute; top: 10px; right: 10px;
   display: flex; padding: 2px;
