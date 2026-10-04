@@ -15,3 +15,6 @@ desktop.ini
 
 # Ne pas versionner les données personnelles (elles sont dans Firebase)
 # Si vous utilisez localStorage uniquement, vos données restent sur l'appareil
+
+# Fichiers de restauration (contiennent des noms de clientes)
+restauration_*.json

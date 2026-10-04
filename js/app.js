@@ -191,6 +191,28 @@ const Store = (() => {
       } catch { return false; }
     },
 
+    // Renvoie les RDV de `list` absents de la base (même date, heure, prénom, nom)
+    findMissing(list) {
+      const norm = s => (s || '').toString().trim().toLowerCase();
+      const key  = a => [a.date, a.time, norm(a.clientFirstName), norm(a.clientLastName)].join('|');
+      const existing = new Set(appointments.filter(a => !a.isPersonal).map(key));
+      return list.filter(a => a && a.date && a.time && !a.isPersonal && !existing.has(key(a)));
+    },
+
+    // Ajoute une liste de RDV (fonctionne en mode Firebase et localStorage)
+    async addMany(list) {
+      const clients = this.getClients();
+      for (const src of list) {
+        const { id, ...appt } = src;
+        // Reprend l'Instagram connu de la cliente s'il manque
+        if (!appt.clientInstagram) {
+          const c = clients.find(c => c.firstName === appt.clientFirstName && c.lastName === appt.clientLastName && c.instagram);
+          if (c) appt.clientInstagram = c.instagram;
+        }
+        await this.add(appt);
+      }
+    },
+
     getByMonth(year, month) {
       return appointments.filter(a => {
         if (!a.date) return false;
@@ -1339,7 +1361,8 @@ const Invoice = (() => {
 
   function generate(year, month) {
     const appts = Store.getByMonth(year, month);
-    const done  = appts.filter(a => a.status !== 'cancelled')
+    // Les événements personnels ne sont pas des recettes : jamais dans le PDF
+    const done  = appts.filter(a => a.status !== 'cancelled' && !a.isPersonal)
                        .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
 
     if (done.length === 0) {
@@ -1659,6 +1682,42 @@ const SettingsPage = (() => {
       if (success) UI.toast('Données importées', 'success');
       else UI.toast('Format de fichier invalide', 'error');
       e.target.value = '';
+    });
+
+    // Restauration : ajoute uniquement les RDV du fichier qui manquent dans la base
+    document.getElementById('restore-data-btn').addEventListener('click', () => {
+      document.getElementById('restore-file-input').click();
+    });
+    document.getElementById('restore-file-input').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      let list;
+      try {
+        list = JSON.parse(await file.text());
+        if (!Array.isArray(list)) throw new Error('Invalid format');
+      } catch {
+        UI.toast('Format de fichier invalide', 'error');
+        return;
+      }
+      const missing = Store.findMissing(list);
+      if (missing.length === 0) {
+        UI.toast('Aucun rendez-vous manquant : rien à restaurer', 'success');
+        return;
+      }
+      const preview = missing.slice(0, 12).map(a =>
+        `${a.date.slice(8)}/${a.date.slice(5, 7)} ${a.clientFirstName} ${a.clientLastName}`).join(', ');
+      const ok = await UI.confirm('♻️', `Restaurer ${missing.length} rendez-vous ?`,
+        `${preview}${missing.length > 12 ? '…' : ''}. Les rendez-vous déjà présents ne sont pas modifiés.`,
+        'Restaurer', 'btn-primary');
+      if (!ok) return;
+      try {
+        await Store.addMany(missing);
+        UI.toast(`${missing.length} rendez-vous restaurés`, 'success');
+      } catch (err) {
+        console.error('Restore error:', err);
+        UI.toast('Erreur pendant la restauration', 'error');
+      }
     });
 
     // Edit settings
