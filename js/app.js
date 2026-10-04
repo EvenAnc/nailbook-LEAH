@@ -1281,6 +1281,10 @@ const StatsPage = (() => {
 
     if (filter === 'confirmed') appts = appts.filter(a => a.status !== 'cancelled');
     if (filter === 'cancelled') appts = appts.filter(a => a.status === 'cancelled');
+    // Filtres par moyen de paiement de la prestation (hors annulés)
+    if (filter === 'especes' || filter === 'wero') {
+      appts = appts.filter(a => a.status !== 'cancelled' && a.servicePayment === filter);
+    }
 
     appts.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
 

@@ -510,7 +510,13 @@ ul { list-style: none; }
   transition: all var(--dur) var(--ease);
 }
 .appt-list-item:hover { box-shadow: var(--shadow-md); transform: translateX(3px); }
-.appt-list-item.cancelled { opacity: .6; border-left-color: var(--text-muted); }
+.appt-list-item.cancelled {
+  background: var(--danger-bg);
+  border-left-color: var(--danger) !important;
+  opacity: .75;
+}
+.appt-list-item.cancelled .appt-list-name,
+.appt-list-item.cancelled .appt-list-price { text-decoration: line-through; color: var(--danger); }
 .appt-list-info { flex: 1; }
 .appt-list-name { font-weight: 600; font-size: 14px; }
 .appt-list-service { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
