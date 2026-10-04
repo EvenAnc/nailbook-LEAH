@@ -838,6 +838,8 @@ const AppointmentModal = (() => {
       await save();
     });
 
+    document.getElementById('toggle-pdf-btn').addEventListener('click', togglePdfHidden);
+
     // Delete
     document.getElementById('delete-appt-btn').addEventListener('click', async () => {
       const ok = await UI.confirm('🗑️', 'Supprimer ce rendez-vous ?',
@@ -848,6 +850,20 @@ const AppointmentModal = (() => {
         UI.toast('Rendez-vous supprimé', 'success');
       }
     });
+  }
+
+  // Masque / réaffiche la prestation dans le PDF (le RDV reste dans l'app et dans le CA)
+  async function togglePdfHidden() {
+    const appt = Store.getAll().find(a => a.id === currentId);
+    if (!appt) return;
+    const hide = !appt.hiddenFromPdf;
+    try {
+      await Store.update(currentId, { hiddenFromPdf: hide });
+      close();
+      UI.toast(hide ? 'Prestation masquée du PDF' : 'Prestation réaffichée dans le PDF', 'success');
+    } catch (e) {
+      UI.toast('Erreur lors de la sauvegarde', 'error');
+    }
   }
 
   function setupAutocomplete(inputId, listId, field) {
@@ -921,6 +937,7 @@ const AppointmentModal = (() => {
     document.getElementById('tips-amount-group').classList.add('hidden');
     document.getElementById('appt-duration-text').textContent = '—';
     document.getElementById('delete-appt-btn').style.display = 'none';
+    document.getElementById('toggle-pdf-btn').style.display = 'none';
     document.querySelectorAll('.service-chip').forEach(b => b.classList.remove('active'));
     document.getElementById('appt-is-personal').checked = false;
     togglePersonalMode(false);
@@ -960,6 +977,8 @@ const AppointmentModal = (() => {
         document.getElementById('appt-personal-desc').value  = appt.personalDesc  || '';
       } else {
         document.getElementById('modal-title').textContent = 'Modifier le rendez-vous';
+        document.getElementById('toggle-pdf-btn').style.display = 'flex';
+        document.getElementById('toggle-pdf-label').textContent = appt.hiddenFromPdf ? 'Réafficher dans le PDF' : 'Masquer du PDF';
         document.getElementById('appt-firstname').value    = appt.clientFirstName || '';
         document.getElementById('appt-lastname').value     = appt.clientLastName  || '';
         document.getElementById('appt-instagram').value    = (appt.clientInstagram || '').replace('@', '');
@@ -1235,6 +1254,7 @@ const StatsPage = (() => {
   let year  = new Date().getFullYear();
   let month = new Date().getMonth();
   let filter = 'all';
+  let payMode = 'ca'; // 'ca' = toutes les prestations | 'pdf' = hors prestations masquées du PDF
 
   function init() {
     document.getElementById('stats-prev').addEventListener('click', () => {
@@ -1253,6 +1273,27 @@ const StatsPage = (() => {
       filter = btn.dataset.filter;
       document.querySelectorAll('#stats-filters .chip').forEach(c => c.classList.toggle('chip-active', c === btn));
       renderList();
+    });
+
+    // Carte paiements : bascule CA / PDF
+    document.getElementById('stat-pay-mode').addEventListener('click', e => {
+      const btn = e.target.closest('.stat-mode-btn');
+      if (!btn) return;
+      payMode = btn.dataset.mode;
+      document.querySelectorAll('#stat-pay-mode .stat-mode-btn').forEach(b => b.classList.toggle('active', b === btn));
+      render();
+    });
+
+    // Réaffiche dans le PDF toutes les prestations masquées du mois
+    document.getElementById('unhide-all-btn').addEventListener('click', async () => {
+      const hidden = Store.getByMonth(year, month).filter(a => a.hiddenFromPdf);
+      const pl = hidden.length > 1 ? 's' : '';
+      try {
+        for (const a of hidden) await Store.update(a.id, { hiddenFromPdf: false });
+        UI.toast(`${hidden.length} prestation${pl} réaffichée${pl} dans le PDF`, 'success');
+      } catch (e) {
+        UI.toast('Erreur lors de la sauvegarde', 'error');
+      }
     });
 
     document.getElementById('download-invoice-btn').addEventListener('click', () => {
@@ -1274,9 +1315,23 @@ const StatsPage = (() => {
     const ca   = pay.ca;
     const tips = pay.tips;
 
-    const totalAmt  = ca + tips;
-    const weroPct   = totalAmt ? Math.round((pay.wero / totalAmt) * 100) : 0;
-    const especePct = totalAmt ? Math.round((pay.especes / totalAmt) * 100) : 0;
+    // Vue PDF : mêmes prestations, sans celles masquées du PDF
+    const pdfDone    = done.filter(a => !a.hiddenFromPdf);
+    const pdfPay     = splitPayments(pdfDone, true);
+    const hiddenList = appts.filter(a => a.hiddenFromPdf && !a.isPersonal);
+    const hiddenDone = done.length - pdfDone.length;
+
+    document.getElementById('stat-ca-pdf').textContent = UI.formatCurrency(pdfPay.ca);
+    document.getElementById('stat-ca-pdf-note').textContent =
+      hiddenDone > 0 ? `${hiddenDone} masquée${hiddenDone > 1 ? 's' : ''}` : '';
+    const unhideBtn = document.getElementById('unhide-all-btn');
+    unhideBtn.classList.toggle('hidden', hiddenList.length === 0);
+    unhideBtn.textContent = `Tout réafficher (${hiddenList.length})`;
+
+    const shown     = payMode === 'pdf' ? pdfPay : pay;
+    const totalAmt  = shown.ca + shown.tips;
+    const weroPct   = totalAmt ? Math.round((shown.wero / totalAmt) * 100) : 0;
+    const especePct = totalAmt ? Math.round((shown.especes / totalAmt) * 100) : 0;
     const otherPct  = totalAmt ? Math.max(0, 100 - weroPct - especePct) : 0;
 
     document.getElementById('stat-ca').textContent   = UI.formatCurrency(ca);
@@ -1318,6 +1373,7 @@ const StatsPage = (() => {
     if (filter === 'especes' || filter === 'wero') {
       appts = appts.filter(a => a.status !== 'cancelled' && a.servicePayment === filter);
     }
+    if (filter === 'hidden') appts = appts.filter(a => a.hiddenFromPdf);
     if (filter === 'unpaid') {
       appts = appts.filter(a => a.status !== 'cancelled' && a.servicePayment !== 'wero' && a.servicePayment !== 'especes');
     }
@@ -1335,11 +1391,11 @@ const StatsPage = (() => {
       const svc    = CONFIG.serviceColors[a.serviceType] || { emoji: '💅', label: a.serviceType, color: '#B76E79' };
       const status = CONFIG.statusLabels[a.status] || CONFIG.statusLabels.pending;
       const item = document.createElement('div');
-      item.className = `appt-list-item${a.status === 'cancelled' ? ' cancelled' : ''}`;
+      item.className = `appt-list-item${a.status === 'cancelled' ? ' cancelled' : ''}${a.hiddenFromPdf ? ' pdf-hidden' : ''}`;
       item.style.borderColor = svc.color;
       item.innerHTML = `
         <div class="appt-list-info">
-          <div class="appt-list-name">${a.clientFirstName} ${a.clientLastName}</div>
+          <div class="appt-list-name">${a.clientFirstName} ${a.clientLastName}${a.hiddenFromPdf ? '<span class="pdf-hidden-badge">Masqué du PDF</span>' : ''}</div>
           <div class="appt-list-service">${svc.emoji} ${svc.label} · ${UI.formatTime(a.time)}</div>
           <div class="appt-list-date">
             ${UI.formatDate(a.date, {day:'numeric',month:'short'})}
@@ -1377,13 +1433,17 @@ const Invoice = (() => {
   function generate(year, month) {
     const appts = Store.getByMonth(year, month);
     // Les événements personnels ne sont pas des recettes : jamais dans le PDF
-    const done  = appts.filter(a => a.status !== 'cancelled' && !a.isPersonal)
+    const real  = appts.filter(a => a.status !== 'cancelled' && !a.isPersonal);
+    const done  = real.filter(a => !a.hiddenFromPdf)
                        .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
 
     if (done.length === 0) {
       UI.toast('Aucune prestation ce mois à facturer', 'warning');
       return;
     }
+    // Un PDF auquel il manque des prestations est un extrait, pas le livre complet
+    const hiddenCount = real.length - done.length;
+    const isExtract   = hiddenCount > 0;
 
     const monthName   = UI.capitalize(new Date(year, month, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }));
     const issueDate   = new Date(year, month + 1, 0); // last day of month
@@ -1456,7 +1516,7 @@ const Invoice = (() => {
             },
             {
               stack: [
-                { text: 'LIVRE DES RECETTES', style: 'invoiceTitle' },
+                { text: isExtract ? 'LIVRE DES RECETTES — EXTRAIT' : 'LIVRE DES RECETTES', style: 'invoiceTitle', fontSize: isExtract ? 14 : 18 },
                 { text: `N° ${invoiceNum}`, style: 'invoiceNum' },
                 { text: `Période : ${monthName}`, style: 'invoiceMeta' },
                 { text: `Date d'émission : ${issueDateFr}`, style: 'invoiceMeta' },
@@ -1472,7 +1532,11 @@ const Invoice = (() => {
         { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 523, y2: 0, lineWidth: 2, lineColor: COLORS.primary }], margin: [0, 0, 0, 20] },
 
         // ── TITRE TABLEAU ───────────────────────────
-        { text: `Détail des prestations — ${monthName}`, style: 'sectionTitle', margin: [0, 0, 0, 12] },
+        { text: `Détail des prestations — ${monthName}`, style: 'sectionTitle', margin: [0, 0, 0, isExtract ? 4 : 12] },
+        ...(isExtract ? [{
+          text: `Extrait partiel : ${hiddenCount} prestation${hiddenCount > 1 ? 's' : ''} du mois non incluse${hiddenCount > 1 ? 's' : ''}.`,
+          fontSize: 9, italics: true, color: '#666', margin: [0, 0, 0, 12],
+        }] : []),
 
         // ── TABLEAU DES PRESTATIONS ──────────────────
         {
@@ -1554,7 +1618,9 @@ const Invoice = (() => {
             { text: CONFIG.business.vatNote, fontSize: 8.5, color: '#666', margin: [0, 0, 0, 3] },
             { text: `Pénalités de retard : ${CONFIG.defaults.lateRate}.`, fontSize: 8.5, color: '#666', margin: [0, 0, 0, 3] },
             { text: 'Indemnité forfaitaire de recouvrement pour les professionnels : 40 €.', fontSize: 8.5, color: '#666', margin: [0, 0, 0, 3] },
-            { text: 'Ce document tient lieu de livre des recettes conformément à l\'article 50-0 du CGI.', fontSize: 8.5, color: '#666', italics: true },
+            { text: isExtract
+                ? 'Extrait partiel du livre des recettes : ce document ne tient pas lieu de livre des recettes.'
+                : 'Ce document tient lieu de livre des recettes conformément à l\'article 50-0 du CGI.', fontSize: 8.5, color: '#666', italics: true },
           ],
         },
       ],

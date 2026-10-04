@@ -178,6 +178,11 @@
               <div class="stat-label">Chiffre d'affaires</div>
               <div class="stat-trend" id="stat-ca-trend"></div>
             </div>
+            <div class="stat-side">
+              <div class="stat-side-value" id="stat-ca-pdf">0,00 €</div>
+              <div class="stat-label">Sur le PDF</div>
+              <div class="stat-side-note" id="stat-ca-pdf-note"></div>
+            </div>
           </div>
           <div class="stat-card">
             <div class="stat-icon stat-icon-rose">📅</div>
@@ -194,7 +199,11 @@
               <div class="stat-label">Tips reçus</div>
             </div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card stat-card-pay">
+            <div class="stat-mode-toggle" id="stat-pay-mode">
+              <button type="button" class="stat-mode-btn active" data-mode="ca">CA</button>
+              <button type="button" class="stat-mode-btn" data-mode="pdf">PDF</button>
+            </div>
             <div class="stat-icon stat-icon-mint">💳</div>
             <div class="stat-info">
               <div class="stat-value" id="stat-wero">0% / 100%</div>
@@ -222,6 +231,7 @@
                 <div class="invoice-card-sub" id="invoice-month-label">Juillet 2026</div>
               </div>
             </div>
+            <button class="btn btn-ghost invoice-unhide-btn hidden" id="unhide-all-btn"></button>
             <button class="btn btn-primary" id="download-invoice-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Télécharger PDF
@@ -239,6 +249,7 @@
             <button class="chip" data-filter="especes">Espèces</button>
             <button class="chip" data-filter="wero">Wero</button>
             <button class="chip" data-filter="unpaid">Non renseigné</button>
+            <button class="chip" data-filter="hidden">Masqués PDF</button>
           </div>
         </div>
         <div id="stats-appointments-list" class="appointments-list"></div>
@@ -545,6 +556,10 @@
             <button type="button" class="btn btn-danger" id="delete-appt-btn" style="display:none">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
               Supprimer
+            </button>
+            <button type="button" class="btn btn-pdf-hide" id="toggle-pdf-btn" style="display:none">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="12" x2="15" y2="18"/><line x1="15" y1="12" x2="9" y2="18"/></svg>
+              <span id="toggle-pdf-label">Masquer du PDF</span>
             </button>
             <div style="flex:1"></div>
             <button type="button" class="btn btn-ghost" id="modal-cancel-btn">Annuler</button>

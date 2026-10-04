@@ -436,6 +436,20 @@ ul { list-style: none; }
 .stat-icon-blush { background: #FDF2F5; }
 .stat-icon-mint { background: var(--success-bg); }
 .stat-info { flex: 1; }
+.stat-side { text-align: right; padding-left: 14px; border-left: 1.5px solid var(--border-light); }
+.stat-side-value { font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; color: var(--accent); }
+.stat-side-note { font-size: 11px; font-weight: 600; color: var(--danger); margin-top: 2px; min-height: 14px; }
+.stat-card-pay { position: relative; }
+.stat-mode-toggle {
+  position: absolute; top: 10px; right: 10px;
+  display: flex; padding: 2px;
+  background: var(--bg-secondary); border-radius: var(--radius-full);
+}
+.stat-mode-btn {
+  padding: 3px 10px; border-radius: var(--radius-full);
+  font-size: 11px; font-weight: 600; color: var(--text-secondary);
+}
+.stat-mode-btn.active { background: var(--bg-card); color: var(--accent); box-shadow: var(--shadow-sm); }
 .stat-value { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 700; color: var(--text-primary); }
 .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 .stat-trend { font-size: 12px; font-weight: 600; margin-top: 4px; }
@@ -511,8 +525,15 @@ ul { list-style: none; }
   transition: all var(--dur) var(--ease);
 }
 .appt-list-item:hover { box-shadow: var(--shadow-md); transform: translateX(3px); }
+.appt-list-item.pdf-hidden { background: #FFF1F1; }
+.pdf-hidden-badge {
+  display: inline-block; padding: 1px 8px; margin-left: 6px;
+  border-radius: var(--radius-full);
+  background: var(--danger-bg); color: var(--danger);
+  font-size: 10px; font-weight: 700; vertical-align: middle;
+}
 .appt-list-item.cancelled {
-  background: var(--danger-bg);
+  background: #F7CFCF;
   border-left-color: var(--danger) !important;
   opacity: .75;
 }
@@ -765,6 +786,11 @@ input:checked + .toggle-slider::before { transform: translateX(20px); }
 .btn-ghost:hover { background: var(--bg-secondary); color: var(--text-primary); }
 .btn-danger { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-bg); }
 .btn-danger:hover { background: var(--danger); color: white; }
+.btn-pdf-hide { background: var(--warning-bg); color: var(--warning); border-color: var(--warning-bg); }
+.btn-pdf-hide:hover { background: var(--warning); color: white; }
+.invoice-unhide-btn { margin-left: auto; color: var(--gold-light); border-color: rgba(245,232,213,.35); }
+.invoice-unhide-btn:hover { background: rgba(245,232,213,.12); color: var(--gold-light); }
+@media (max-width: 600px) { .form-actions { flex-wrap: wrap; } }
 .btn-full { width: 100%; }
 .btn-sm { padding: 8px 16px; font-size: 13px; }
 
