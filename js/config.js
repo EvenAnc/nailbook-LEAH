@@ -1,20 +1,20 @@
 // ══════════════════════════════════════════════════
-// NailBook — Configuration Entreprise & Auth
-// Nails By LV — RETIRE
+// NailBook — Configuration
+// Aucune donnée personnelle ici : ce fichier est public.
 // ══════════════════════════════════════════════════
 
 const CONFIG = {
   // ─── ENTREPRISE ────────────────────────────────
+  // Valeurs neutres. Les vraies informations (gérante, SIREN, adresse) sont
+  // enregistrées dans la base Firestore (document settings/business) et
+  // chargées après connexion — voir Store dans app.js.
   business: {
     name:        'Nails By LV',
-    ownerName:   'RETIRE',
+    ownerName:   '',
     legalStatus: 'Entrepreneur Individuel',
-    siren:       'RETIRE',
-    // SIRET = SIREN (9 chiffres) + NIC (5 chiffres)
-    // À compléter sur https://www.infogreffe.fr une fois disponible
-    siret:       'RETIRE', // ← À vérifier/compléter
-    address:     'RETIRE',
-    zipCity:     'RETIRE',
+    siren:       '',
+    address:     '',
+    zipCity:     '',
     country:     'France',
     // Numéro de TVA intracommunautaire non applicable (franchise de base)
     vatNote:     'TVA non applicable, art. 293 B du CGI',
@@ -26,14 +26,6 @@ const CONFIG = {
     durationMin:    90,      // minutes — durée standard 1h30
     invoicePrefix:  'REC',   // préfixe numéro de facture
     lateRate:       '3 fois le taux d\'intérêt légal en vigueur',
-  },
-
-  // ─── AUTHENTIFICATION ──────────────────────────
-  // Email utilisé pour la connexion Firebase Auth
-  auth: {
-    email: 'RETIRE',
-    // Le mot de passe n'est JAMAIS stocké ici — il est géré uniquement par Firebase Auth
-    passwordHash: 'RETIRE', // fallback hors-ligne uniquement
   },
 
   // ─── FIREBASE ──────────────────────────────────

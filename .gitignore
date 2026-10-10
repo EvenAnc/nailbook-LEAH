@@ -18,3 +18,23 @@ desktop.ini
 
 # Fichiers de restauration (contiennent des noms de clientes)
 restauration_*.json
+
+# Secrets et réglages locaux
+.env
+.env.*
+*.pem
+*.key
+serviceAccount*.json
+*-firebase-adminsdk-*.json
+.firebaserc
+.firebase/
+
+# Exports et sauvegardes (contiennent des noms de clientes)
+nailbook_export_*.json
+*export*.json
+*backup*
+*.bak
+
+# Outils
+node_modules/
+.claude/

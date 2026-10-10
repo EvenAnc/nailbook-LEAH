@@ -20,7 +20,6 @@ const Store = (() => {
   // Clé localStorage
   const LS_KEY = 'nailbook_appointments';
   const LS_INVOICE_KEY = 'nailbook_invoice_counter';
-  const LS_PWD_KEY = 'nailbook_password_hash';
 
   function subscribe(fn) { listeners.push(fn); }
 
@@ -40,26 +39,57 @@ const Store = (() => {
     return n;
   }
 
-  // ── localStorage operations ──
-  function loadCustomSettings() {
-    try {
-      const customBiz = JSON.parse(localStorage.getItem('nailbook_biz_settings'));
-      if (customBiz) {
-        Object.assign(CONFIG.business, customBiz);
-        if(document.getElementById('set-val-name')) document.getElementById('set-val-name').textContent = customBiz.name || CONFIG.business.name;
-        if(document.getElementById('set-val-owner')) document.getElementById('set-val-owner').textContent = customBiz.ownerName || CONFIG.business.ownerName;
-        if(document.getElementById('set-val-siren')) document.getElementById('set-val-siren').textContent = customBiz.siren || CONFIG.business.siren;
-        if(document.getElementById('set-val-address')) document.getElementById('set-val-address').textContent = customBiz.address || CONFIG.business.address;
-        
-        const dur = customBiz.defaultDuration || 90;
-        if(document.getElementById('set-val-duration')) document.getElementById('set-val-duration').textContent = dur >= 60 ? Math.floor(dur/60) + 'h' + (dur%60||'00') : dur + ' min';
-        
-        const dep = customBiz.defaultDeposit !== undefined ? customBiz.defaultDeposit : 15;
-        if(document.getElementById('set-val-deposit')) document.getElementById('set-val-deposit').textContent = dep + ' €';
-      }
-    } catch(e){}
+  // ── Informations de l'entreprise ──
+  // Source : Firestore (settings/business), lisible seulement une fois connectée.
+  // localStorage n'en garde qu'une copie sur l'appareil, effacée à la déconnexion.
+  const LS_BIZ_KEY = 'nailbook_biz_settings';
+  const BIZ_FIELDS = ['name', 'ownerName', 'siren', 'address', 'defaultDuration', 'defaultDeposit'];
+
+  function applyBusiness(biz) {
+    if (!biz) return;
+    BIZ_FIELDS.forEach(k => { if (biz[k] !== undefined) CONFIG.business[k] = biz[k]; });
+    const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    set('set-val-name', CONFIG.business.name || '—');
+    set('set-val-owner', CONFIG.business.ownerName || '—');
+    set('set-val-siren', CONFIG.business.siren || '—');
+    set('set-val-address', CONFIG.business.address || '—');
+    const dur = CONFIG.business.defaultDuration || 90;
+    set('set-val-duration', dur >= 60 ? Math.floor(dur/60) + 'h' + (dur%60||'00') : dur + ' min');
+    const dep = CONFIG.business.defaultDeposit !== undefined ? CONFIG.business.defaultDeposit : 15;
+    set('set-val-deposit', dep + ' €');
   }
-  loadCustomSettings();
+
+  function lsBusiness() {
+    try { return JSON.parse(localStorage.getItem(LS_BIZ_KEY)); } catch(e) { return null; }
+  }
+
+  async function loadBusiness() {
+    const local = lsBusiness();
+    applyBusiness(local);
+    if (!db) return;
+    try {
+      const m = window.__fbModules;
+      const ref = m.doc(db, 'settings', 'business');
+      const snap = await m.getDoc(ref);
+      if (snap.exists()) {
+        applyBusiness(snap.data());
+        localStorage.setItem(LS_BIZ_KEY, JSON.stringify(snap.data()));
+      } else if (local) {
+        // Réglages saisis sur cet appareil avant la migration : on les envoie dans la base
+        await m.setDoc(ref, local);
+      }
+    } catch (e) {
+      console.warn('Chargement des informations entreprise impossible', e);
+    }
+  }
+
+  async function saveBusiness(biz) {
+    applyBusiness(biz);
+    localStorage.setItem(LS_BIZ_KEY, JSON.stringify(biz));
+    if (db) await window.__fbModules.setDoc(window.__fbModules.doc(db, 'settings', 'business'), biz);
+  }
+
+  function clearLocalBusiness() { localStorage.removeItem(LS_BIZ_KEY); }
 
   function lsLoad() {
     try {
@@ -122,27 +152,20 @@ const Store = (() => {
     await m.deleteDoc(m.doc(db, 'appointments', id));
   }
 
-  // ── Password management ──
-  function getPasswordHash() {
-    return localStorage.getItem(LS_PWD_KEY) || CONFIG.auth.passwordHash;
-  }
-
-  function setPasswordHash(hash) {
-    localStorage.setItem(LS_PWD_KEY, hash);
-  }
-
   // ── Public API ──
   return {
     subscribe,
     getAll: () => appointments,
     getInvoiceCounter,
     incrementInvoiceCounter,
-    getPasswordHash,
-    setPasswordHash,
+    saveBusiness,
+    clearLocalBusiness,
+    needsBusinessInfo: () => !CONFIG.business.siren,
 
     async init() {
       const fbOk = await fbInit();
       if (!fbOk) lsLoad();
+      await loadBusiness();
     },
 
     async add(appt) {
@@ -252,8 +275,6 @@ const Store = (() => {
 // ══════════════════════════════════════════════════
 const Auth = (() => {
   const SESSION_KEY = 'nailbook_session';
-  const LOCK_KEY = 'nailbook_lock';
-  const ATTEMPTS_KEY = 'nailbook_attempts';
 
   let fbAuthInstance = null;
   let fbAppInstance = null;
@@ -288,87 +309,50 @@ const Auth = (() => {
         callback(!!user);
       });
     } else {
-      callback(sessionStorage.getItem(SESSION_KEY) === 'authenticated');
+      // Sans Firebase, personne n'est connecté : aucune vérification dans la page
+      callback(false);
     }
   }
 
-  async function hashPassword(pwd) {
-    const buf = await crypto.subtle.digest(
-      'SHA-256', new TextEncoder().encode(pwd)
-    );
-    return Array.from(new Uint8Array(buf))
-      .map(b => b.toString(16).padStart(2, '0')).join('');
+  function login() {
+    sessionStorage.setItem(SESSION_KEY, 'authenticated');
   }
 
-  function login() { 
-    sessionStorage.setItem(SESSION_KEY, 'authenticated'); 
-    localStorage.removeItem(ATTEMPTS_KEY);
-    localStorage.removeItem(LOCK_KEY);
-  }
-  
-  async function logout() { 
+  async function logout() {
     if (fbAuthInstance) {
       await window.__fbModules.signOut(fbAuthInstance);
     }
-    sessionStorage.removeItem(SESSION_KEY); 
+    sessionStorage.removeItem(SESSION_KEY);
   }
 
-  function checkLock() {
-    if (fbAuthInstance) return 0; // Firebase gère son propre bruteforce (bloque le compte)
-    const lockUntil = parseInt(localStorage.getItem(LOCK_KEY) || '0', 10);
-    if (lockUntil > Date.now()) {
-      return Math.ceil((lockUntil - Date.now()) / 1000);
-    }
-    return 0;
-  }
-
-  function recordAttempt(success) {
-    if (fbAuthInstance) return; // Inutile si Firebase géré
-    if (success) {
-      localStorage.removeItem(ATTEMPTS_KEY);
-      localStorage.removeItem(LOCK_KEY);
-    } else {
-      let attempts = parseInt(localStorage.getItem(ATTEMPTS_KEY) || '0', 10) + 1;
-      localStorage.setItem(ATTEMPTS_KEY, attempts.toString());
-      if (attempts >= 5) {
-        const lockMinutes = Math.pow(2, attempts - 5);
-        localStorage.setItem(LOCK_KEY, (Date.now() + lockMinutes * 60000).toString());
-      }
-    }
-  }
-
-  async function verify(pwd) {
-    if (fbAuthInstance) {
-      try {
-        await window.__fbModules.signInWithEmailAndPassword(fbAuthInstance, CONFIG.auth.email, pwd);
-        return { ok: true, locked: false };
-      } catch (err) {
-        if (err.code === 'auth/too-many-requests') return { ok: false, locked: true };
-        return { ok: false, locked: false };
-      }
-    } else {
-      // Fallback mode hors-ligne sans Firebase
-      if (checkLock() > 0) return { ok: false, locked: true };
-      const hash = await hashPassword(pwd);
-      const ok = hash === Store.getPasswordHash();
-      recordAttempt(ok);
-      return { ok, locked: false };
+  // La vérification est faite par Firebase, côté serveur (qui bloque aussi les essais répétés)
+  async function verify(email, pwd) {
+    initFbAuth();
+    if (!fbAuthInstance) return { ok: false, unavailable: true };
+    try {
+      await window.__fbModules.signInWithEmailAndPassword(fbAuthInstance, email, pwd);
+      return { ok: true };
+    } catch (err) {
+      if (err.code === 'auth/too-many-requests') return { ok: false, locked: true };
+      if (err.code === 'auth/network-request-failed') return { ok: false, unavailable: true };
+      return { ok: false };
     }
   }
 
   async function changePassword(currentPwd, newPwd) {
-    // Note: Modifier un mot de passe Firebase via Web nécessite plus de code (re-authentication).
-    // Si Firebase, l'utilisateur doit le changer depuis la console Firebase pour plus de sécurité.
-    if (fbAuthInstance) return false; 
-    
-    const res = await verify(currentPwd);
-    if (!res.ok) return false;
-    const newHash = await hashPassword(newPwd);
-    Store.setPasswordHash(newHash);
-    return true;
+    const m = window.__fbModules;
+    const user = fbAuthInstance && fbAuthInstance.currentUser;
+    if (!user) return false;
+    try {
+      await m.reauthenticateWithCredential(user, m.EmailAuthProvider.credential(user.email, currentPwd));
+      await m.updatePassword(user, newPwd);
+      return true;
+    } catch (err) {
+      return false;
+    }
   }
 
-  return { onAuthStateReady, login, logout, verify, changePassword, checkLock };
+  return { onAuthStateReady, login, logout, verify, changePassword };
 })();
 
 // ══════════════════════════════════════════════════
@@ -1817,24 +1801,16 @@ const SettingsPage = (() => {
         const duration = parseInt(document.getElementById('set-input-duration').value, 10);
         const deposit = parseFloat(document.getElementById('set-input-deposit').value);
 
-        CONFIG.business.name = name;
-        CONFIG.business.ownerName = owner;
-        CONFIG.business.siren = siren;
-        CONFIG.business.address = address;
-        CONFIG.business.defaultDuration = duration;
-        CONFIG.business.defaultDeposit = deposit;
+        try {
+          await Store.saveBusiness({
+            name, ownerName: owner, siren, address, defaultDuration: duration, defaultDeposit: deposit
+          });
+        } catch (err) {
+          console.error('Settings save error:', err);
+          UI.toast('Erreur pendant l\'enregistrement', 'error');
+          return;
+        }
 
-        localStorage.setItem('nailbook_biz_settings', JSON.stringify({
-          name, ownerName: owner, siren, address, defaultDuration: duration, defaultDeposit: deposit
-        }));
-
-        if(document.getElementById('set-val-name')) document.getElementById('set-val-name').textContent = name;
-        if(document.getElementById('set-val-owner')) document.getElementById('set-val-owner').textContent = owner;
-        if(document.getElementById('set-val-siren')) document.getElementById('set-val-siren').textContent = siren;
-        if(document.getElementById('set-val-address')) document.getElementById('set-val-address').textContent = address;
-        if(document.getElementById('set-val-duration')) document.getElementById('set-val-duration').textContent = duration >= 60 ? Math.floor(duration/60) + 'h' + (duration%60||'00') : duration + ' min';
-        if(document.getElementById('set-val-deposit')) document.getElementById('set-val-deposit').textContent = deposit + ' €';
-        
         closeSettings();
         UI.toast('Paramètres enregistrés', 'success');
       });
@@ -1861,12 +1837,6 @@ const SettingsPage = (() => {
         return;
       }
 
-      if (CONFIG.firebase.apiKey) {
-        msg.textContent = '❌ En mode Firebase, modifie ton mot de passe depuis la Console Firebase (console.firebase.google.com).';
-        msg.style.color = 'var(--danger)';
-        msg.classList.remove('hidden');
-        return;
-      }
       const ok = await Auth.changePassword(current, newPwd);
       if (ok) {
         msg.textContent = '✅ Mot de passe modifié avec succès';
@@ -1900,6 +1870,9 @@ async function initApp() {
     }
   });
 
+  // L'adresse de connexion est mémorisée sur l'appareil (jamais dans le code)
+  document.getElementById('email-input').value = localStorage.getItem('nailbook_login_email') || '';
+
   // Password toggle
   document.getElementById('toggle-password').addEventListener('click', () => {
     const input = document.getElementById('password-input');
@@ -1911,30 +1884,29 @@ async function initApp() {
     e.preventDefault();
     const submitBtn = e.target.querySelector('[type=submit]');
     
-    const lockTime = Auth.checkLock();
-    if (lockTime > 0) {
-      const err = document.getElementById('auth-error');
-      err.textContent = `🔒 Sécurité : Trop de tentatives. Réessayez dans ${lockTime}s.`;
+    const err = document.getElementById('auth-error');
+    submitBtn.textContent = '...';
+    submitBtn.disabled = true;
+    const email = document.getElementById('email-input').value.trim();
+    const pwd = document.getElementById('password-input').value;
+    const res = await Auth.verify(email, pwd);
+    submitBtn.textContent = 'Accéder';
+    submitBtn.disabled = false;
+
+    if (res.locked) {
+      err.textContent = '🔒 Trop de tentatives. Réessaie dans quelques minutes.';
       err.classList.remove('hidden');
       return;
     }
-
-    submitBtn.textContent = '...';
-    submitBtn.disabled = true;
-    const pwd = document.getElementById('password-input').value;
-    const res = await Auth.verify(pwd);
-    submitBtn.textContent = 'Accéder';
-    submitBtn.disabled = false;
-    
-    if (res.locked) {
-      const err = document.getElementById('auth-error');
-      err.textContent = `🔒 Compte verrouillé pour sécurité.`;
+    if (res.unavailable) {
+      err.textContent = 'Connexion impossible : vérifie ta connexion Internet.';
       err.classList.remove('hidden');
       return;
     }
 
     if (res.ok) {
       Auth.login();
+      localStorage.setItem('nailbook_login_email', email);
       const screen = document.getElementById('auth-screen');
       screen.style.transition = 'opacity .3s ease';
       screen.style.opacity = '0';
@@ -1945,7 +1917,8 @@ async function initApp() {
         await showApp();
       }, 300);
     } else {
-      document.getElementById('auth-error').classList.remove('hidden');
+      err.textContent = 'E-mail ou mot de passe incorrect';
+      err.classList.remove('hidden');
       document.getElementById('password-input').value = '';
       document.getElementById('password-input').focus();
     }
@@ -1954,6 +1927,7 @@ async function initApp() {
   // Logout buttons
   async function doLogout() {
     await Auth.logout();
+    Store.clearLocalBusiness();
     appInitialized = false; // reset so showApp can run again next login
     document.getElementById('app').classList.add('hidden');
     const screen = document.getElementById('auth-screen');
@@ -2012,6 +1986,10 @@ async function showApp() {
 
   // End-of-month invoice reminder
   checkMonthEndReminder();
+
+  if (Store.needsBusinessInfo()) {
+    UI.toast('Complète les informations de l\'entreprise dans Réglages → Modifier', 'warning', 8000);
+  }
 }
 
 function checkMonthEndReminder() {

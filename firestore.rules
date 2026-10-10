@@ -1,16 +1,35 @@
 rules_version = '2';
 
+// Règles de sécurité de la base. Ce fichier est une copie de référence :
+// les règles réellement appliquées sont celles publiées dans la console Firebase
+// (Firestore Database → Règles).
+//
+// Avant de publier : remplacer UID_DU_COMPTE_AUTORISE par l'identifiant du compte
+// (console Firebase → Authentication → Users → colonne « UID utilisateur »).
+// Tant que ce n'est pas fait, tout est refusé.
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Règle par défaut : tout bloquer
-    match /{document=**} {
-      allow read, write: if false;
+
+    // Un seul compte a accès : être connecté ne suffit pas
+    function estLeCompteAutorise() {
+      return request.auth != null
+          && request.auth.uid == 'UID_DU_COMPTE_AUTORISE';
     }
 
-    // Autoriser la lecture et l'écriture sur la collection appointments
-    // UNIQUEMENT si l'utilisateur est authentifié via Firebase Auth
+    // Rendez-vous
     match /appointments/{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if estLeCompteAutorise();
+    }
+
+    // Informations de l'entreprise (gérante, SIREN, adresse)
+    match /settings/{document} {
+      allow read, write: if estLeCompteAutorise();
+    }
+
+    // Tout le reste est fermé
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
